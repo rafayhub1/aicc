@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AICC Document{% endblock %}</title>
+  {% block meta %}{% endblock %}
+  <style>
+    :root {
+      --ink: #1b2433;
+      --muted: #5c6778;
+      --line: #c5ced8;
+      --accent: #127246;
+      --paper: #ffffff;
+      --wash: #f4f7f5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #e7ebf0;
+      color: var(--ink);
+      font-family: "Segoe UI", "Noto Sans", sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #121820;
+    }
+
+    .toolbar button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 650;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 16px auto;
+      background: var(--paper);
+      padding: 10mm 12mm;
+      box-shadow: 0 8px 28px rgba(21, 27, 40, 0.12);
+    }
+
+    .uni-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .uni-name {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .uni-sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .doc-kind {
+      text-align: right;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .identity {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .identity th,
+    .identity td {
+      text-align: left;
+      padding: 3px 8px 3px 0;
+      vertical-align: top;
+    }
+
+    .identity th {
+      width: 34%;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    table.lines {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    table.lines th,
+    table.lines td {
+      border-bottom: 1px solid var(--line);
+      padding: 4px 0;
+      text-align: left;
+    }
+
+    table.lines th {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    table.lines td.amount,
+    table.lines th.amount { text-align: right; }
+
+    .total-row td {
+      font-weight: 700;
+      border-bottom: 2px solid var(--ink);
+      padding-top: 6px;
+    }
+
+    .words {
+      margin: 6px 0 0;
+      font-size: 11px;
+    }
+
+    .copy {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px 10px;
+      margin-bottom: 8px;
+      break-inside: avoid;
+    }
+
+    .copy-label {
+      display: inline-block;
+      background: var(--wash);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+
+    .sign-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin-top: 28px;
+    }
+
+    .sign-row div {
+      flex: 1;
+      border-top: 1px solid var(--ink);
+      padding-top: 4px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .notice {
+      margin-top: 24px;
+      padding: 28px 20px;
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+    }
+
+    .notice h2 { margin: 0 0 8px; }
+
+    .notice p { margin: 0; color: var(--muted); }
+
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none !important; }
+      .sheet {
+        width: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+  <main class="sheet">
+    {% block document %}{% endblock %}
+  </main>
+</body>
+</html>

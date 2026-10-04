@@ -1,0 +1,51 @@
+{% extends "_document_base.html" %}
+{% block title %}Fee challan · {{ student.name }}{% endblock %}
+{% block meta %}
+<meta name="aicc-document-state" content="ready">
+<meta name="aicc-document-type" content="fee_challan">
+{% endblock %}
+{% block document %}
+{% for copy in copies %}
+<section class="copy">
+  <div class="uni-head">
+    <div>
+      <p class="uni-name">AICC University</p>
+      <p class="uni-sub">Campus Companion · Accounts Office</p>
+    </div>
+    <div class="doc-kind">
+      <div class="copy-label">{{ copy }}</div>
+      <div>Semester fee challan</div>
+    </div>
+  </div>
+  <table class="identity">
+    <tr><th>Student</th><td>{{ student.name }}</td></tr>
+    <tr><th>Registration</th><td>{{ student.registrationNumber }}</td></tr>
+    <tr><th>Department</th><td>{{ department_name }}</td></tr>
+    <tr><th>Semester / section</th><td>Semester {{ student.semester }} · Section {{ student.section }}</td></tr>
+    <tr><th>Session</th><td>{{ session }}</td></tr>
+    <tr><th>Challan number</th><td>{{ challan_number }}</td></tr>
+    <tr><th>Issue date</th><td>{{ issue_date }}</td></tr>
+    <tr><th>Due date</th><td>{{ due_date }}</td></tr>
+  </table>
+  <table class="lines">
+    <thead>
+      <tr><th>Description</th><th class="amount">Amount (PKR)</th></tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.label }}</td>
+        <td class="amount">Rs. {{ line.amount|rupees }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td>Total payable</td>
+        <td class="amount">Rs. {{ total|rupees }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="words">Amount in words: {{ amount_words }}</p>
+</section>
+{% endfor %}
+<p class="footnote">Pay at the designated bank counter before the due date. This challan is valid for {{ session }} only. A late payment is not accepted on this voucher.</p>
+{% endblock %}

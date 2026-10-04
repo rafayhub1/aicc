@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsNew() {
+      return signedIn() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    function ownsExisting() {
+      return signedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /activity_events/{eventId} {
+      allow create: if ownsNew();
+      allow read, update, delete: if ownsExisting();
+    }
+
+    match /chat_sessions/{sessionId} {
+      allow create: if ownsNew();
+      allow read, update, delete: if ownsExisting();
+    }
+
+    match /chat_messages/{messageId} {
+      allow create: if ownsNew();
+      allow read, update, delete: if ownsExisting();
+    }
+
+    // Faculty is shared reference data. Signed-in students can read it.
+    // Create is allowed so the app can load the sample faculty once.
+    match /faculty/{facultyId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if false;
+    }
+  }
+}

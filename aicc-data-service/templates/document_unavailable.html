@@ -1,0 +1,17 @@
+{% extends "_document_base.html" %}
+{% block title %}{{ heading }} · AICC{% endblock %}
+{% block meta %}
+<meta name="aicc-document-state" content="{{ state }}">
+{% endblock %}
+{% block document %}
+<div class="uni-head">
+  <div>
+    <p class="uni-name">AICC University</p>
+    <p class="uni-sub">Campus Companion</p>
+  </div>
+</div>
+<div class="notice">
+  <h2>{{ heading }}</h2>
+  <p>{{ message }}</p>
+</div>
+{% endblock %}

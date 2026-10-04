@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "210376358380",
+    "project_id": "aicc-mobile-48ed6",
+    "storage_bucket": "aicc-mobile-48ed6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210376358380:android:9c622b01a7a72c6d0128c9",
+        "android_client_info": {
+          "package_name": "com.example.aicc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD333fGOwbdejOuiRJmgwPD67Bm3C3l1oI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,44 @@
+{% extends "_document_base.html" %}
+{% block title %}Roll number slip · {{ student.name }}{% endblock %}
+{% block meta %}
+<meta name="aicc-document-state" content="ready">
+<meta name="aicc-document-type" content="roll_number_slip">
+{% endblock %}
+{% block document %}
+<div class="uni-head">
+  <div>
+    <p class="uni-name">AICC University</p>
+    <p class="uni-sub">Campus Companion · Examinations Office</p>
+  </div>
+  <div class="doc-kind">Roll number slip<br>{{ session }}</div>
+</div>
+<table class="identity">
+  <tr><th>Student</th><td>{{ student.name }}</td></tr>
+  <tr><th>Registration</th><td>{{ student.registrationNumber }}</td></tr>
+  <tr><th>Department</th><td>{{ department_name }}</td></tr>
+  <tr><th>Semester</th><td>Semester {{ student.semester }}</td></tr>
+  <tr><th>Section</th><td>Section {{ student.section }}</td></tr>
+  <tr><th>Roll number</th><td>{{ roll_number }}</td></tr>
+</table>
+<table class="lines">
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Course</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for course in courses %}
+    <tr>
+      <td>{{ course.courseCode }}</td>
+      <td>{{ course.courseName }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="sign-row">
+  <div>Student signature</div>
+  <div>Controller of examinations</div>
+</div>
+<p class="footnote">Bring this slip and a university identity card to every paper. A student absent from a paper without an accepted excuse is marked absent. Mobile phones are not permitted in the examination hall.</p>
+{% endblock %}
