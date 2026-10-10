@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/theme.dart';
 
@@ -8,31 +9,38 @@ class AppCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(AppSpacing.md),
     this.onTap,
-    this.color = AppColors.card,
+    this.color,
   });
 
   final Widget child;
   final EdgeInsets padding;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    final radius = BorderRadius.circular(AppRadius.card);
+    final palette = context.palette;
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: AppShadows.card,
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(color: palette.shadow, blurRadius: 18, offset: const Offset(0, 8)),
+        ],
       ),
-      child: Padding(padding: padding, child: child),
-    );
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: card,
+      child: Material(
+        color: color ?? palette.card,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap == null
+              ? null
+              : () {
+                  HapticFeedback.lightImpact();
+                  onTap!();
+                },
+          child: Padding(padding: padding, child: child),
+        ),
       ),
     );
   }

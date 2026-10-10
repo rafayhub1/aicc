@@ -31,6 +31,38 @@ class Faculty {
   final String officeRoom;
   final String currentStatus;
 
+  Faculty copyWith({
+    String? id,
+    String? fullName,
+    String? department,
+    String? designation,
+    List<String>? subjects,
+    String? classSchedule,
+    String? consultationHours,
+    List<String>? daysOff,
+    String? email,
+    String? phone,
+    String? officeBuilding,
+    String? officeRoom,
+    String? currentStatus,
+  }) {
+    return Faculty(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      department: department ?? this.department,
+      designation: designation ?? this.designation,
+      subjects: subjects ?? this.subjects,
+      classSchedule: classSchedule ?? this.classSchedule,
+      consultationHours: consultationHours ?? this.consultationHours,
+      daysOff: daysOff ?? this.daysOff,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      officeBuilding: officeBuilding ?? this.officeBuilding,
+      officeRoom: officeRoom ?? this.officeRoom,
+      currentStatus: currentStatus ?? this.currentStatus,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'full_name': fullName,

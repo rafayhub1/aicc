@@ -57,10 +57,30 @@ String chatTitleFrom(String text) {
 }
 
 String internalEmailFor(String registrationNumber) {
-  return '${registrationNumber.trim().toUpperCase()}@lgu.com.pk';
+  return '${registrationNumber.trim().toLowerCase()}@aicc-demo.local';
 }
 
 final registrationPattern = RegExp(r'^[A-Za-z]{2}\d{2}-[A-Za-z]+-\d{3}$');
+final usernamePattern = RegExp(r'^[A-Za-z][A-Za-z0-9_]{2,}$');
+
+String? validateLoginIdentifier(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return 'Enter your registration number';
+  if (registrationPattern.hasMatch(trimmed) || usernamePattern.hasMatch(trimmed)) {
+    return null;
+  }
+  return 'Use the format FA26-BSCS-001';
+}
+
+String? validateStudentRegistration(String value, String department) {
+  final format = validateRegistration(value);
+  if (format != null) return format;
+  final parts = value.trim().toUpperCase().split('-');
+  if (parts.length == 3 && parts[1] != department) {
+    return 'The registration number must include $department';
+  }
+  return null;
+}
 
 String? validateRegistration(String value) {
   final trimmed = value.trim();

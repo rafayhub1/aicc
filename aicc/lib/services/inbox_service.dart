@@ -60,7 +60,10 @@ class InboxService {
         }
       }
     }
-    final ready = document?.isReady ?? false;
+    final page = document ??
+        (docType == null
+            ? null
+            : StudentDocument(id: docType, docType: docType, status: 'pending'));
     return InboxItem(
       id: notification.id,
       source: 'backend',
@@ -69,9 +72,7 @@ class InboxService {
       body: notification.message,
       time: notification.timestamp,
       read: notification.read,
-      documentUrl: ready
-          ? document!.resolvedUrl(api.baseUrl, studentId)
-          : null,
+      documentUrl: page?.resolvedUrl(api.baseUrl, studentId),
       documentTitle: switch (notification.type) {
         'fee_challan_ready' => 'Fee challan',
         'roll_slip_ready' => 'Roll number slip',

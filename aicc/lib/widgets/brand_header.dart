@@ -19,9 +19,9 @@ class BrandHeader extends StatelessWidget {
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(AppRadius.pill),
           ),
-          child: const Text(
+          child: Text(
             'AICC',
-            style: TextStyle(
+            style: AppTextStyles.label.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.6,
@@ -29,17 +29,11 @@ class BrandHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 8),
+        Text(title, style: AppTextStyles.title.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           subtitle,
-          style: const TextStyle(color: AppColors.muted, height: 1.4, fontSize: 15),
+          style: AppTextStyles.muted.copyWith(fontSize: 15),
         ),
       ],
     );

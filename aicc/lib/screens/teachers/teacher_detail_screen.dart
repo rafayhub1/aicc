@@ -47,7 +47,7 @@ class TeacherDetailScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${faculty.designation} · ${departmentLabel(faculty.department)}',
-                        style: const TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.palette.muted),
                       ),
                       const SizedBox(height: 8),
                       StatusPill(label: faculty.currentStatus),
@@ -93,7 +93,7 @@ class TeacherDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700)),
+            Text(title, style: TextStyle(color: context.palette.muted, fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(body, style: const TextStyle(height: 1.4, fontSize: 16)),
           ],
@@ -121,7 +121,7 @@ class TeacherDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700)),
+                  Text(label, style: TextStyle(color: context.palette.muted, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   SelectableText(
                     value,

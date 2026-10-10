@@ -1,51 +1,47 @@
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 class VoiceService {
-  VoiceService({SpeechToText? speech, FlutterTts? tts})
-      : _speech = speech ?? SpeechToText(),
+  VoiceService({AudioRecorder? recorder, FlutterTts? tts})
+      : _recorder = recorder ?? AudioRecorder(),
         _tts = tts ?? FlutterTts();
 
-  final SpeechToText _speech;
+  final AudioRecorder _recorder;
   final FlutterTts _tts;
-  bool _ready = false;
+  bool _recording = false;
 
-  bool get isListening => _speech.isListening;
+  bool get isRecording => _recording;
 
   Future<bool> prepare() async {
-    _ready = await _speech.initialize();
+    final allowed = await _recorder.hasPermission();
     await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.46);
     await _tts.setVolume(1);
-    return _ready;
+    return allowed;
   }
 
-  Future<void> listen({
-    required void Function(String words, bool isFinal) onResult,
-    void Function(Object error)? onError,
-  }) async {
-    if (!_ready) {
-      final ok = await prepare();
-      if (!ok) {
-        throw StateError('Speech recognition is not available on this phone.');
-      }
+  Future<void> startRecording() async {
+    if (!await _recorder.hasPermission()) {
+      throw StateError('Microphone permission was denied.');
     }
-    await _speech.listen(
-      onResult: (SpeechRecognitionResult result) {
-        onResult(result.recognizedWords, result.finalResult);
-      },
-      listenOptions: SpeechListenOptions(
-        listenMode: ListenMode.dictation,
-        partialResults: true,
-        listenFor: const Duration(seconds: 25),
-        pauseFor: const Duration(seconds: 3),
+    final directory = await getTemporaryDirectory();
+    final path = '${directory.path}/aicc-speech.m4a';
+    await _recorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        sampleRate: 16000,
+        numChannels: 1,
       ),
+      path: path,
     );
+    _recording = true;
   }
 
-  Future<void> stopListening() async {
-    if (_speech.isListening) await _speech.stop();
+  Future<String?> stopRecording() async {
+    if (!_recording && !await _recorder.isRecording()) return null;
+    _recording = false;
+    return _recorder.stop();
   }
 
   Future<void> speak(String text) async {
@@ -58,7 +54,8 @@ class VoiceService {
   Future<void> stopSpeaking() => _tts.stop();
 
   Future<void> dispose() async {
-    await stopListening();
+    if (_recording) await stopRecording();
     await _tts.stop();
+    await _recorder.dispose();
   }
 }

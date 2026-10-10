@@ -1,11 +1,13 @@
 import '../core/academics.dart';
 import '../core/formatters.dart';
+import '../models/chat_message.dart';
 import '../models/faculty.dart';
 import '../models/student.dart';
 import '../models/student_document.dart';
 import '../services/api_service.dart';
 import '../services/faculty_search.dart';
 import 'intent.dart';
+import 'knowledge_base.dart';
 
 class ChatAction {
   const ChatAction({required this.label, required this.url});
@@ -30,6 +32,7 @@ class ChatEngine {
   Future<ChatReply> respond({
     required String text,
     required Student? student,
+    List<ChatMessage> history = const [],
   }) async {
     final intent = classifyIntent(text);
     switch (intent.kind) {
@@ -39,7 +42,8 @@ class ChatEngine {
           'Hello $name. I can open your fee challan or roll number slip, check attendance, and look up a teacher.',
         );
       case ChatIntentKind.faq:
-        return ChatReply(intent.faqAnswer ?? _fallback);
+      case ChatIntentKind.unknown:
+        return _groundedReply(text, intent, history);
       case ChatIntentKind.feeChallan:
         return _documentReply(
           student: student,
@@ -58,9 +62,27 @@ class ChatEngine {
         return _academicsReply(text, student);
       case ChatIntentKind.faculty:
         return _facultyReply(text);
-      case ChatIntentKind.unknown:
-        return const ChatReply(_fallback);
     }
+  }
+
+  Future<ChatReply> _groundedReply(
+    String text,
+    ClassifiedIntent intent,
+    List<ChatMessage> history,
+  ) async {
+    try {
+      final turns = <({String role, String content})>[
+        for (final message in history)
+          if (message.content.trim().isNotEmpty)
+            (role: message.role, content: message.content),
+      ];
+      final answer = await api.askAssistant(text, turns);
+      if (answer.trim().isNotEmpty) return ChatReply(answer.trim());
+    } catch (_) {}
+    if (intent.faqAnswer != null) return ChatReply(intent.faqAnswer!);
+    final local = matchKnowledge(text.toLowerCase());
+    if (local != null) return ChatReply(local);
+    return const ChatReply(_fallback);
   }
 
   Future<ChatReply> _documentReply({
@@ -153,6 +175,11 @@ class ChatEngine {
 
   Future<ChatReply> _facultyReply(String text) async {
     final people = await facultyLoader();
+    if (people.isEmpty) {
+      return const ChatReply(
+        'Teacher records are not loaded yet. Ask again after the faculty list is added.',
+      );
+    }
     final tokens = _nameTokens(text);
     if (tokens.isEmpty) {
       final available = people

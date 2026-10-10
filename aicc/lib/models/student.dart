@@ -28,6 +28,17 @@ class Student {
       cgpaOverall: _asDouble(json['cgpaOverall']),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name.trim(),
+      'registrationNumber': registrationNumber.trim().toUpperCase(),
+      'department': department,
+      'semester': semester,
+      'section': section,
+      'cgpaOverall': cgpaOverall,
+    };
+  }
 }
 
 int _asInt(Object? value) {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
 import '../../core/theme.dart';
+import '../../core/transitions.dart';
 import '../../models/chat_session.dart';
 import '../../services/api_exception.dart';
 import '../../services/chat_repository.dart';
@@ -53,7 +54,16 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
 
   Future<void> _deleteIds(Set<String> ids) async {
     final repo = context.read<ChatRepository>();
-    await repo.deleteSessions(ids);
+    try {
+      await repo.deleteSessions(ids);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(describeError(error))),
+      );
+      await _load();
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _sessions = _sessions?.where((session) => !ids.contains(session.id)).toList();
@@ -96,8 +106,23 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
           ),
         )
         .closed
-        .then((_) {
-      if (!undone) repo.deleteSession(session.id);
+        .then((_) async {
+      if (undone) return;
+      try {
+        await repo.deleteSession(session.id);
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          final current = _sessions;
+          if (current == null) return;
+          if (current.any((item) => item.id == session.id)) return;
+          final insertAt = index.clamp(0, current.length);
+          current.insert(insertAt, session);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(describeError(error))),
+        );
+      }
     });
   }
 
@@ -140,22 +165,28 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
           child: Row(
             children: [
-              if (_selected.isNotEmpty)
+              if (_selected.isNotEmpty) ...[
+                TextButton(
+                  onPressed: () => setState(_selected.clear),
+                  child: const Text('Cancel'),
+                ),
                 TextButton(
                   onPressed: () => _deleteIds(Set.of(_selected)),
                   child: Text('Delete ${_selected.length}'),
-                )
-              else
+                ),
+              ] else
                 const Spacer(),
-              TextButton(
-                onPressed: _clearAll,
-                child: const Text('Clear all', style: TextStyle(color: AppColors.danger)),
-              ),
+              if (_selected.isEmpty)
+                TextButton(
+                  onPressed: _clearAll,
+                  child: Text('Clear all', style: AppTextStyles.label.copyWith(color: AppColors.danger)),
+                ),
             ],
           ),
         ),
         Expanded(
           child: RefreshIndicator(
+            color: AppColors.primary,
             onRefresh: _load,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -166,10 +197,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                       padding: const EdgeInsets.only(top: 8, bottom: 8),
                       child: Text(
                         label,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppTextStyles.label.copyWith(color: context.palette.muted),
                       ),
                     ),
                     for (final session in grouped[label]!)
@@ -185,8 +213,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                             return;
                           }
                           Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => ChatScreen(
+                            fadeSlideRoute<void>(
+                              ChatScreen(
                                 sessionId: session.id,
                                 readOnly: true,
                               ),
@@ -240,7 +268,7 @@ class _SessionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final tile = Card(
       elevation: 0,
-      color: selected ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
+      color: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.16) : context.palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
       child: ListTile(
         onTap: onTap,

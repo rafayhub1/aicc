@@ -47,12 +47,8 @@ class ChatRepository {
   }
 
   Future<List<ChatMessage>> listMessages(String sessionId) async {
-    final snapshot =
-        await _messages.where('session_id', isEqualTo: sessionId).get();
-    final messages = snapshot.docs
-        .map(ChatMessage.fromDoc)
-        .where((message) => message.userId == _uid)
-        .toList();
+    final docs = await _messageDocs(sessionId);
+    final messages = docs.map(ChatMessage.fromDoc).toList();
     messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return messages;
   }
@@ -69,15 +65,21 @@ class ChatRepository {
   }
 
   Future<void> _deleteMessages(String sessionId) async {
-    final snapshot =
-        await _messages.where('session_id', isEqualTo: sessionId).get();
-    if (snapshot.docs.isEmpty) return;
+    final docs = await _messageDocs(sessionId);
+    if (docs.isEmpty) return;
     final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      if (doc.data()['user_id'] == _uid) {
-        batch.delete(doc.reference);
-      }
+    for (final doc in docs) {
+      batch.delete(doc.reference);
     }
     await batch.commit();
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _messageDocs(
+    String sessionId,
+  ) async {
+    final snapshot = await _messages.where('user_id', isEqualTo: _uid).get();
+    return snapshot.docs
+        .where((doc) => doc.data()['session_id'] == sessionId)
+        .toList();
   }
 }

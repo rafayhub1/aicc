@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
 import '../../core/theme.dart';
+import '../../core/transitions.dart';
 import '../../models/faculty.dart';
 import '../../services/api_exception.dart';
 import '../../services/faculty_repository.dart';
@@ -26,6 +27,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
   Object? _error;
   bool _loading = true;
   String _department = '';
+  bool _seeding = false;
 
   @override
   void initState() {
@@ -40,6 +42,20 @@ class _TeachersScreenState extends State<TeachersScreen> {
     super.dispose();
   }
 
+  Future<void> _seed() async {
+    setState(() => _seeding = true);
+    try {
+      await context.read<FacultyRepository>().seedSampleFaculty();
+      if (!mounted) return;
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      final denied = '$error'.toLowerCase().contains('permission');
+      setState(() => _error = denied ? 'rules' : error);
+    } finally {
+      if (mounted) setState(() => _seeding = false);
+    }
+  }
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -74,7 +90,13 @@ class _TeachersScreenState extends State<TeachersScreen> {
       );
     }
     if (_error != null && _faculty == null) {
-      return ErrorState(message: describeError(_error!), onRetry: _load);
+      final rules = _error == 'rules';
+      return ErrorState(
+        message: rules
+            ? 'Publish the latest aicc/firestore.rules in the aicc-mobile project, then try again.'
+            : describeError(_error!),
+        onRetry: rules ? _seed : _load,
+      );
     }
     final people = filterFaculty(
       _faculty ?? const [],
@@ -108,10 +130,18 @@ class _TeachersScreenState extends State<TeachersScreen> {
         ),
         Expanded(
           child: people.isEmpty
-              ? const EmptyState(
+              ? EmptyState(
                   icon: Icons.person_search_rounded,
-                  title: 'No teachers found',
-                  message: 'Try another name, subject, or department.',
+                  title: (_faculty ?? const []).isEmpty ? 'No teachers yet' : 'No teachers found',
+                  message: _error == 'rules'
+                      ? 'Publish the latest aicc/firestore.rules in the aicc-mobile project, then try again.'
+                      : (_faculty ?? const []).isEmpty
+                          ? 'Load 36 sample teachers. Some teach English, maths, or statistics in more than one department.'
+                          : 'Try another name, subject, or department.',
+                  actionLabel: (_faculty ?? const []).isEmpty
+                      ? (_seeding ? 'Loading…' : 'Load sample teachers')
+                      : null,
+                  onAction: (_faculty ?? const []).isEmpty && !_seeding ? _seed : null,
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -120,15 +150,13 @@ class _TeachersScreenState extends State<TeachersScreen> {
                   itemBuilder: (context, index) {
                     final person = people[index];
                     return Material(
-                      color: Colors.white,
+                      color: context.palette.card,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppRadius.card),
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => TeacherDetailScreen(faculty: person),
-                            ),
+                            fadeSlideRoute<void>(TeacherDetailScreen(faculty: person)),
                           );
                         },
                         child: Padding(
@@ -157,7 +185,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       '${person.designation} · ${departmentLabel(person.department)}',
-                                      style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                                      style: TextStyle(color: context.palette.muted, fontSize: 13),
                                     ),
                                   ],
                                 ),
@@ -185,7 +213,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
         onSelected: (_) => setState(() => _department = code),
         selectedColor: AppColors.primary,
         labelStyle: TextStyle(
-          color: selected ? Colors.white : AppColors.ink,
+          color: selected ? Colors.white : context.palette.ink,
           fontWeight: FontWeight.w600,
         ),
       ),

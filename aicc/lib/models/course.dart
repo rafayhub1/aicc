@@ -27,4 +27,13 @@ class Course {
           : int.tryParse('${json['semester']}') ?? 0,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'courseName': courseName.trim(),
+      'courseCode': courseCode.trim().toUpperCase(),
+      'attendancePercent': attendancePercent,
+      'semester': semester,
+    };
+  }
 }

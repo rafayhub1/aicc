@@ -36,29 +36,26 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateMixin {
+class _ChatScreenState extends State<ChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
   final _voice = VoiceService();
   late final ChatEngine _engine;
   late final ActivityService _activity;
-  late final AnimationController _pulse;
 
   final List<ChatMessage> _messages = [];
   String? _sessionId;
   bool _loadingHistory = false;
   bool _replying = false;
   bool _listening = false;
+  bool _transcribing = false;
   bool _speakerOn = true;
   bool _loggedCompletion = false;
-  bool _stopRequested = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat(reverse: true);
     _activity = context.read<ActivityService>();
     _engine = ChatEngine(
       api: context.read<ApiService>(),
@@ -90,7 +87,6 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
       _loggedCompletion = true;
       _activity.log('chat_completed').then((_) {}, onError: (_, _) {});
     }
-    _pulse.dispose();
     _voice.dispose();
     _input.dispose();
     _scroll.dispose();
@@ -133,7 +129,12 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
       _scrollToEnd();
       await repo.addMessage(userMessage);
 
-      final reply = await _engine.respond(text: text, student: session.student);
+      final prior = _messages.where((message) => message.id != userMessage.id).toList();
+      final reply = await _engine.respond(
+        text: text,
+        student: session.student,
+        history: prior.length <= 6 ? prior : prior.sublist(prior.length - 6),
+      );
       if (!mounted) return;
       final assistant = ChatMessage(
         id: 'local-assistant-${DateTime.now().microsecondsSinceEpoch}',
@@ -222,9 +223,9 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.3),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'You can type, or tap the microphone and speak.',
-            style: TextStyle(color: AppColors.muted, height: 1.4),
+          Text(
+            'Type a question, or tap the microphone and speak.',
+            style: TextStyle(color: context.palette.muted, height: 1.4),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -264,24 +265,23 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
           children: [
             if (widget.embedded)
               Align(alignment: Alignment.centerRight, child: _speakerButton()),
-            if (_listening)
-              FadeTransition(
-                opacity: Tween<double>(begin: 0.4, end: 1).animate(_pulse),
-                child: const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Listening… speak your question',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
-                  ),
-                ),
+            if (_listening || _transcribing) ...[
+              const _ListeningWave(),
+              const SizedBox(height: 6),
+              Text(
+                _transcribing ? 'Turning speech into text…' : 'Listening… tap stop when you finish',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.label.copyWith(color: AppColors.primary),
               ),
+              const SizedBox(height: 8),
+            ],
             Row(
               children: [
                 _RoundIconButton(
                   tooltip: _listening ? 'Stop listening' : 'Speak a question',
                   icon: _listening ? Icons.stop_rounded : Icons.mic_rounded,
                   filled: _listening,
-                  onPressed: _toggleMic,
+                  onPressed: (_replying || _transcribing) ? null : _toggleMic,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -313,35 +313,47 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _toggleMic() async {
-    if (_voice.isListening) {
-      _stopRequested = true;
-      await _voice.stopListening();
-      if (mounted) setState(() => _listening = false);
-      final spoken = _input.text.trim();
-      if (spoken.isNotEmpty) _send();
+    if (_listening || _voice.isRecording) {
+      final path = await _voice.stopRecording();
+      if (!mounted) return;
+      setState(() {
+        _listening = false;
+        _transcribing = path != null;
+      });
+      if (path == null) return;
+      try {
+        final spoken = await context.read<ApiService>().transcribeSpeech(path);
+        if (!mounted) return;
+        _input.text = spoken;
+        _input.selection = TextSelection.collapsed(offset: _input.text.length);
+        setState(() => _transcribing = false);
+        if (spoken.trim().isNotEmpty) {
+          await _send();
+        } else {
+          _showMicHelp('No words were heard. Speak a little longer, then tap stop.');
+        }
+      } catch (error) {
+        if (!mounted) return;
+        setState(() => _transcribing = false);
+        _showMicHelp(describeError(error));
+      }
       return;
     }
     try {
-      _stopRequested = false;
+      await _voice.stopSpeaking();
       final ready = await _voice.prepare();
       if (!ready) {
-        _showMicHelp('Speech recognition is not available on this phone.');
+        _showMicHelp(
+          'Microphone permission is needed to speak a question. Allow it when Android asks, or turn the microphone on for AICC in system settings.',
+        );
         return;
       }
+      await _voice.startRecording();
+      if (!mounted) return;
       setState(() => _listening = true);
-      await _voice.listen(
-        onResult: (words, isFinal) {
-          if (!mounted || _stopRequested) return;
-          _input.text = words;
-          _input.selection = TextSelection.collapsed(offset: _input.text.length);
-          if (isFinal) {
-            setState(() => _listening = false);
-            if (words.trim().isNotEmpty) _send();
-          }
-        },
-      );
     } catch (_) {
-      if (mounted) setState(() => _listening = false);
+      if (!mounted) return;
+      setState(() => _listening = false);
       _showMicHelp(
         'Microphone permission is needed to speak a question. Allow it when Android asks, or turn the microphone on for AICC in system settings.',
       );
@@ -377,7 +389,7 @@ class _Bubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.82),
         decoration: BoxDecoration(
-          color: mine ? AppColors.primary : Colors.white,
+          color: mine ? Theme.of(context).colorScheme.primary : context.palette.card,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -392,20 +404,39 @@ class _Bubble extends StatelessWidget {
             Text(
               message.content,
               style: TextStyle(
-                color: mine ? Colors.white : AppColors.ink,
+                color: mine ? Colors.white : context.palette.ink,
                 height: 1.35,
               ),
             ),
             if (!mine && message.actionUrl != null) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => openDocument(
-                  context,
-                  title: message.actionLabel ?? 'Document',
-                  url: message.actionUrl!,
+              const SizedBox(height: 10),
+              Material(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.control),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.control),
+                  onTap: () => openDocument(
+                    context,
+                    title: message.actionLabel ?? 'Document',
+                    url: message.actionUrl!,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.description_outlined, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            message.actionLabel ?? 'View document',
+                            style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: Text(message.actionLabel ?? 'Open document'),
               ),
             ],
           ],
@@ -415,18 +446,115 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
+class _ListeningWave extends StatefulWidget {
+  const _ListeningWave();
+
+  @override
+  State<_ListeningWave> createState() => _ListeningWaveState();
+}
+
+class _ListeningWaveState extends State<_ListeningWave> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Align(
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < 5; i++)
+              Container(
+                width: 4,
+                height: 8 + 16 * _bar(_controller.value, i),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _bar(double t, int index) {
+    final phase = (t + index / 5) % 1;
+    return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+  }
+}
+
+class _TypingIndicator extends StatefulWidget {
+  const _TypingIndicator();
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
       alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: 10),
-        child: Text('AICC is typing…', style: TextStyle(color: AppColors.muted)),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: context.palette.card,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppShadows.card,
+        ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < 3; i++)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: EdgeInsets.only(left: i == 0 ? 0 : 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(
+                        alpha: 0.35 + 0.65 * _dot(_controller.value, i),
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
+  }
+
+  double _dot(double t, int index) {
+    final phase = (t + index / 3) % 1;
+    return phase < 0.5 ? phase * 2 : (1 - phase) * 2;
   }
 }
 
@@ -452,8 +580,8 @@ class _RoundIconButton extends StatelessWidget {
         tooltip: tooltip,
         onPressed: onPressed,
         style: IconButton.styleFrom(
-          backgroundColor: filled ? AppColors.primary : AppColors.background,
-          foregroundColor: filled ? Colors.white : AppColors.primary,
+          backgroundColor: filled ? Theme.of(context).colorScheme.primary : context.palette.background,
+          foregroundColor: filled ? Colors.white : Theme.of(context).colorScheme.primary,
         ),
         icon: Icon(icon),
       ),

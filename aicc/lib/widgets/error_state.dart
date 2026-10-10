@@ -30,21 +30,17 @@ class ErrorState extends StatelessWidget {
               ),
               child: const Icon(Icons.cloud_off_rounded, color: AppColors.danger, size: 32),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'Something needs attention',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              textAlign: TextAlign.center,
+              style: AppTextStyles.title.copyWith(fontSize: 18),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.muted,
-                    height: 1.4,
-                  ),
+              style: AppTextStyles.muted.copyWith(fontSize: 15, color: context.palette.muted),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),

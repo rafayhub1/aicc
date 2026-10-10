@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'transitions.dart';
+
 class AppColors {
   static const primary = Color(0xFF0B3D66);
   static const primaryLight = Color(0xFF1B5F9C);
@@ -39,105 +41,302 @@ class AppShadows {
   ];
 }
 
-class FadeSlideTransitionsBuilder extends PageTransitionsBuilder {
-  const FadeSlideTransitionsBuilder();
+@immutable
+class AppPalette extends ThemeExtension<AppPalette> {
+  const AppPalette({
+    required this.background,
+    required this.card,
+    required this.ink,
+    required this.muted,
+    required this.line,
+    required this.warning,
+    required this.shadow,
+  });
+
+  final Color background;
+  final Color card;
+  final Color ink;
+  final Color muted;
+  final Color line;
+  final Color warning;
+  final Color shadow;
+
+  static const light = AppPalette(
+    background: AppColors.background,
+    card: AppColors.card,
+    ink: AppColors.ink,
+    muted: AppColors.muted,
+    line: AppColors.line,
+    warning: AppColors.warning,
+    shadow: Color(0x140B3D66),
+  );
+
+  static const dark = AppPalette(
+    background: Color(0xFF0B1220),
+    card: Color(0xFF172433),
+    ink: Color(0xFFF4F7FB),
+    muted: Color(0xFFB7C3D1),
+    line: Color(0xFF314155),
+    warning: Color(0xFFE0A15A),
+    shadow: Color(0x66000000),
+  );
 
   @override
-  Widget buildTransitions<T>(
-    PageRoute<T> route,
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
+  AppPalette copyWith({
+    Color? background,
+    Color? card,
+    Color? ink,
+    Color? muted,
+    Color? line,
+    Color? warning,
+    Color? shadow,
+  }) {
+    return AppPalette(
+      background: background ?? this.background,
+      card: card ?? this.card,
+      ink: ink ?? this.ink,
+      muted: muted ?? this.muted,
+      line: line ?? this.line,
+      warning: warning ?? this.warning,
+      shadow: shadow ?? this.shadow,
     );
-    return FadeTransition(
-      opacity: curved,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0.04, 0.02),
-          end: Offset.zero,
-        ).animate(curved),
-        child: child,
-      ),
+  }
+
+  @override
+  AppPalette lerp(ThemeExtension<AppPalette>? other, double t) {
+    if (other is! AppPalette) return this;
+    return AppPalette(
+      background: Color.lerp(background, other.background, t)!,
+      card: Color.lerp(card, other.card, t)!,
+      ink: Color.lerp(ink, other.ink, t)!,
+      muted: Color.lerp(muted, other.muted, t)!,
+      line: Color.lerp(line, other.line, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      shadow: Color.lerp(shadow, other.shadow, t)!,
     );
   }
 }
 
-ThemeData buildAppTheme() {
+extension AppThemeContext on BuildContext {
+  AppPalette get palette => Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
+}
+
+class AppTextStyles {
+  static TextStyle get display => GoogleFonts.inter(
+        fontSize: 32,
+        fontWeight: FontWeight.w800,
+        height: 1.15,
+        color: AppColors.ink,
+      );
+
+  static TextStyle get title => GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+        color: AppColors.primary,
+      );
+
+  static TextStyle get body => GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: AppColors.ink,
+      );
+
+  static TextStyle get muted => GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: AppColors.muted,
+      );
+
+  static TextStyle get label => GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+        color: AppColors.ink,
+      );
+
+  static TextStyle get button => GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+      );
+}
+
+ThemeData buildAppTheme() => buildLightTheme();
+
+ThemeData buildLightTheme() => _buildTheme(Brightness.light);
+
+ThemeData buildDarkTheme() => _buildTheme(Brightness.dark);
+
+ThemeData _buildTheme(Brightness brightness) {
+  final dark = brightness == Brightness.dark;
+  final palette = dark ? AppPalette.dark : AppPalette.light;
+  final primary = dark ? AppColors.primaryLight : AppColors.primary;
   final base = ThemeData(
     useMaterial3: true,
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: AppColors.background,
-    colorScheme: const ColorScheme(
-      brightness: Brightness.light,
-      primary: AppColors.primary,
+    brightness: brightness,
+    scaffoldBackgroundColor: palette.background,
+    splashFactory: InkRipple.splashFactory,
+    extensions: [palette],
+    colorScheme: ColorScheme(
+      brightness: brightness,
+      primary: primary,
       onPrimary: Colors.white,
       secondary: AppColors.accent,
       onSecondary: Colors.white,
       error: AppColors.danger,
       onError: Colors.white,
-      surface: AppColors.card,
-      onSurface: AppColors.ink,
+      surface: palette.card,
+      onSurface: palette.ink,
     ),
-    splashFactory: InkRipple.splashFactory,
   );
 
-  final inter = GoogleFonts.inter();
-  final text = base.textTheme.apply(
-    fontFamily: inter.fontFamily,
-    bodyColor: AppColors.ink,
-    displayColor: AppColors.ink,
+  final text = base.textTheme
+      .apply(
+        fontFamily: GoogleFonts.inter().fontFamily,
+        bodyColor: palette.ink,
+        displayColor: palette.ink,
+      )
+      .copyWith(
+        displaySmall: AppTextStyles.display,
+        headlineMedium: AppTextStyles.title,
+        titleLarge: AppTextStyles.title.copyWith(fontSize: 20, color: palette.ink),
+        bodyLarge: AppTextStyles.body,
+        bodyMedium: AppTextStyles.body.copyWith(fontSize: 15),
+        bodySmall: AppTextStyles.muted,
+        labelLarge: AppTextStyles.button.copyWith(color: AppColors.primary),
+      );
+
+  final buttonShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(AppRadius.pill),
   );
 
   return base.copyWith(
     textTheme: text,
+    primaryTextTheme: text,
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
+      backgroundColor: dark ? palette.card : AppColors.primary,
+      foregroundColor: dark ? palette.ink : Colors.white,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: text.titleLarge?.copyWith(
-        color: Colors.white,
+      titleTextStyle: AppTextStyles.title.copyWith(
+        color: dark ? palette.ink : Colors.white,
         fontSize: 18,
-        fontWeight: FontWeight.w600,
       ),
-      iconTheme: const IconThemeData(color: Colors.white),
+      iconTheme: IconThemeData(color: dark ? palette.ink : Colors.white),
     ),
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(),
+    drawerTheme: DrawerThemeData(
+      backgroundColor: palette.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(),
     ),
+    cardTheme: CardThemeData(
+      color: palette.card,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: palette.background,
+      selectedColor: primary,
+      disabledColor: palette.line,
+      labelStyle: AppTextStyles.label.copyWith(color: palette.ink),
+      secondaryLabelStyle: AppTextStyles.label.copyWith(color: Colors.white),
+      side: BorderSide(color: palette.line),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: palette.card,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: primary,
+      textColor: palette.ink,
+      minVerticalPadding: AppSpacing.sm,
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      titleTextStyle: AppTextStyles.label.copyWith(fontSize: 16),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        elevation: 0,
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: primary.withValues(alpha: 0.45),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
+        minimumSize: const Size(48, 52),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        shape: buttonShape,
+        textStyle: AppTextStyles.button,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: primary,
+        backgroundColor: palette.card,
+        minimumSize: const Size(48, 52),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        side: BorderSide(color: primary.withValues(alpha: 0.35)),
+        shape: buttonShape,
+        textStyle: AppTextStyles.button,
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: primary,
+        minimumSize: const Size(48, 48),
+        textStyle: AppTextStyles.button.copyWith(fontSize: 15),
+      ),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: primary,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: palette.card,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      titleTextStyle: AppTextStyles.title.copyWith(fontSize: 20),
+      contentTextStyle: AppTextStyles.body.copyWith(fontSize: 15),
+    ),
+    iconTheme: IconThemeData(color: primary, size: 22),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.ink,
+      backgroundColor: dark ? palette.line : AppColors.ink,
       contentTextStyle: GoogleFonts.inter(color: Colors.white),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),
       ),
     ),
-    dividerTheme: const DividerThemeData(color: AppColors.line, space: 1),
+    dividerTheme: DividerThemeData(color: palette.line, space: 1),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.background,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: text.bodyMedium?.copyWith(color: AppColors.muted),
-      labelStyle: text.bodyMedium?.copyWith(color: AppColors.muted),
+      fillColor: palette.background,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
+      prefixIconColor: AppColors.muted,
+      suffixIconColor: AppColors.muted,
+      hintStyle: AppTextStyles.muted,
+      labelStyle: AppTextStyles.muted,
+      floatingLabelStyle: AppTextStyles.label.copyWith(color: AppColors.primary),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),
-        borderSide: const BorderSide(color: AppColors.line),
+        borderSide: BorderSide(color: palette.line),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),
-        borderSide: const BorderSide(color: AppColors.line),
+        borderSide: BorderSide(color: palette.line),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
+        borderSide: BorderSide(color: primary, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),

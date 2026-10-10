@@ -163,24 +163,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return ErrorState(message: describeError(_error!), onRetry: _load);
     }
     if (items.isEmpty) {
-      return EmptyState(
-        icon: Icons.notifications_none_rounded,
-        title: 'No notifications yet',
-        message: _filter == _Filter.all
-            ? 'Fee challans, roll slips, and sign-in activity will show up here.'
-            : 'Nothing matches this filter.',
+      return RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 420,
+              child: EmptyState(
+                icon: Icons.notifications_none_rounded,
+                title: _filter == _Filter.unread ? 'All caught up' : 'No notifications yet',
+                message: _filter == _Filter.all
+                    ? 'Fee challans, roll slips, and sign-in activity will show up here.'
+                    : 'Nothing matches this filter.',
+              ),
+            ),
+          ],
+        ),
       );
     }
     return RefreshIndicator(
+      color: AppColors.primary,
       onRefresh: _load,
       child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: items.length,
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final item = items[index];
           return Material(
-            color: Colors.white,
+            color: context.palette.card,
             borderRadius: BorderRadius.circular(AppRadius.card),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -201,26 +215,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               Expanded(
                                 child: Text(
                                   item.title,
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                  style: AppTextStyles.label.copyWith(
+                                    fontSize: 16,
+                                    color: context.palette.ink,
+                                  ),
                                 ),
                               ),
                               if (!item.read)
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.accent,
-                                    shape: BoxShape.circle,
+                                Semantics(
+                                  label: 'Unread',
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.accent,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(item.body, style: const TextStyle(height: 1.35)),
+                          Text(
+                            item.body,
+                            style: AppTextStyles.body.copyWith(fontSize: 15, color: context.palette.ink),
+                          ),
                           const SizedBox(height: 6),
                           Text(
                             relativeTime(item.time),
-                            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                            style: AppTextStyles.muted.copyWith(fontSize: 12, color: context.palette.muted),
                           ),
                         ],
                       ),
@@ -243,7 +266,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       onSelected: (_) => setState(() => _filter = filter),
       selectedColor: AppColors.primary,
       labelStyle: TextStyle(
-        color: selected ? Colors.white : AppColors.ink,
+        color: selected ? Colors.white : context.palette.ink,
         fontWeight: FontWeight.w600,
       ),
     );

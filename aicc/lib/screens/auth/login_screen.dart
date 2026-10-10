@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_config.dart';
 import '../../core/formatters.dart';
+import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_exception.dart';
@@ -14,6 +15,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/brand_header.dart';
+import '../../widgets/document_webview.dart';
 import '../../widgets/waking_banner.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -56,19 +58,39 @@ class _LoginScreenState extends State<LoginScreen> {
       _loading = true;
       _error = null;
     });
+    final raw = _regController.text.trim();
+    final registration = registrationPattern.hasMatch(raw) ? raw.toUpperCase() : raw;
+    _regController.value = TextEditingValue(
+      text: registration,
+      selection: TextSelection.collapsed(offset: registration.length),
+    );
     final auth = context.read<AuthService>();
     final activity = context.read<ActivityService>();
+    final api = context.read<ApiService>();
     try {
-      await auth.signIn(
-        registrationNumber: _regController.text.trim().toUpperCase(),
+      final user = await auth.signIn(
+        registrationNumber: registration,
         password: _passwordController.text,
+        bootstrap: api.bootstrapAdmin,
       );
+      if (!registrationPattern.hasMatch(registration) && !await auth.isAdmin(user)) {
+        await api.bootstrapAdmin();
+        await user.getIdToken(true);
+      }
       try {
         await activity.log('login');
       } catch (_) {}
-    } on FirebaseAuthException catch (error) {
       if (!mounted) return;
-      setState(() => _error = authErrorMessage(error, signup: false));
+      final admin = await auth.isAdmin(user);
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        admin ? AppRoutes.admin : AppRoutes.home,
+        (route) => false,
+      );
+      return;
+    } on FirebaseAuthException {
+      if (!mounted) return;
+      setState(() => _error = kLoginErrorMessage);
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = describeError(error));
@@ -94,16 +116,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Paste the public Render address. Do not add a slash at the end.',
-                    style: TextStyle(color: AppColors.muted, height: 1.35),
+                  Text(
+                    'Paste the public server address. Do not add a slash at the end.',
+                    style: TextStyle(color: context.palette.muted, height: 1.35),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: controller,
                     decoration: const InputDecoration(
                       labelText: 'Server address',
-                      hintText: 'https://your-app.onrender.com',
+                      hintText: 'https://your-service.up.railway.app',
                     ),
                   ),
                   if (resultText != null) ...[
@@ -150,18 +172,32 @@ class _LoginScreenState extends State<LoginScreen> {
     controller.dispose();
   }
 
+  void _previewDocument(String title, String path) {
+    final base = context.read<ApiService>().baseUrl;
+    openDocument(
+      context,
+      title: title,
+      url: '$base/students/FA26-BSCS-001/$path',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.xl,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
           children: [
             const BrandHeader(
               title: 'Welcome back',
               subtitle: 'Sign in with the registration number on your university record.',
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.lg),
             AppCard(
               child: Form(
                 key: _formKey,
@@ -183,9 +219,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Icons.badge_outlined,
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.visiblePassword,
-                      validator: (value) => validateRegistration(value ?? ''),
+                      validator: (value) => validateLoginIdentifier(value ?? ''),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: _passwordController,
                       label: 'Password',
@@ -195,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onSubmitted: (_) => _submit(),
                       validator: (value) => validatePassword(value ?? ''),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.lg),
                     AppButton(
                       label: 'Log in',
                       loading: _loading,
@@ -205,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextButton(
               onPressed: widget.onSignupTap,
               child: const Text('New student? Create an account'),
@@ -213,6 +249,25 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: _editServer,
               child: const Text('University server address'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Temporary check for the document viewer. These open a sample student record.',
+              style: AppTextStyles.muted,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            AppButton(
+              label: 'Preview fee challan',
+              variant: AppButtonVariant.secondary,
+              icon: Icons.receipt_long_outlined,
+              onPressed: () => _previewDocument('Fee challan', 'fee-challan'),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(
+              label: 'Preview roll slip',
+              variant: AppButtonVariant.secondary,
+              icon: Icons.badge_outlined,
+              onPressed: () => _previewDocument('Roll number slip', 'roll-slip'),
             ),
           ],
         ),

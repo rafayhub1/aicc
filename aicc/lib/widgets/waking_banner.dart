@@ -57,12 +57,12 @@ class _WakingBannerState extends State<WakingBanner> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.control),
               ),
-              child: const Text(
+              child: Text(
                 'Waking up the university server. The first request after a pause can take about a minute.',
-                style: TextStyle(color: AppColors.primary, height: 1.35),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, height: 1.35),
               ),
             )
           : const SizedBox(key: ValueKey('idle'), width: 0, height: 0),

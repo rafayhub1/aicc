@@ -25,18 +25,20 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final palette = context.palette;
     final enabled = onPressed != null && !loading;
     final background = switch (variant) {
-      AppButtonVariant.primary => AppColors.primary,
-      AppButtonVariant.secondary => Colors.white,
+      AppButtonVariant.primary => scheme.primary,
+      AppButtonVariant.secondary => palette.card,
       AppButtonVariant.danger => AppColors.danger,
     };
     final foreground = switch (variant) {
-      AppButtonVariant.secondary => AppColors.primary,
+      AppButtonVariant.secondary => scheme.primary,
       _ => Colors.white,
     };
     final border = variant == AppButtonVariant.secondary
-        ? BorderSide(color: AppColors.primary.withValues(alpha: 0.35))
+        ? BorderSide(color: scheme.primary.withValues(alpha: 0.35))
         : BorderSide.none;
 
     final child = AnimatedSwitcher(

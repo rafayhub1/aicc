@@ -37,27 +37,48 @@ class AuthService {
   Future<User> signIn({
     required String registrationNumber,
     required String password,
+    Future<void> Function()? bootstrap,
   }) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: internalEmailFor(registrationNumber),
-        password: password,
-      );
-      final user = credential.user;
-      if (user == null) {
-        throw FirebaseAuthException(
-          code: 'user-missing',
-          message: 'Could not sign in.',
-        );
+      return await _signIn(registrationNumber, password);
+    } on FirebaseAuthException catch (error) {
+      final username = !registrationPattern.hasMatch(registrationNumber.trim());
+      final missing = error.code == 'user-not-found' ||
+          error.code == 'invalid-credential' ||
+          error.code == 'wrong-password' ||
+          error.code == 'invalid-login-credentials';
+      if (username && missing && bootstrap != null) {
+        await bootstrap();
+        return _signIn(registrationNumber, password);
       }
-      return user;
-    } on FirebaseAuthException {
       rethrow;
     }
   }
 
+  Future<bool> isAdmin(User user) async {
+    final result = await user.getIdTokenResult(true);
+    return result.claims?['admin'] == true;
+  }
+
+  Future<User> _signIn(String registrationNumber, String password) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: internalEmailFor(registrationNumber),
+      password: password,
+    );
+    final user = credential.user;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'user-missing',
+        message: 'Could not sign in.',
+      );
+    }
+    return user;
+  }
+
   Future<void> signOut() => _auth.signOut();
 }
+
+const String kLoginErrorMessage = 'Registration number or password is incorrect.';
 
 String authErrorMessage(FirebaseAuthException error, {required bool signup}) {
   if (signup && error.code == 'email-already-in-use') {
@@ -69,5 +90,5 @@ String authErrorMessage(FirebaseAuthException error, {required bool signup}) {
   if (signup) {
     return 'The account could not be created. Check the details and try again.';
   }
-  return 'Registration number or password is incorrect.';
+  return kLoginErrorMessage;
 }

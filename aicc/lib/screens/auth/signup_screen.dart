@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_config.dart';
 import '../../core/formatters.dart';
+import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_exception.dart';
@@ -49,6 +50,10 @@ class _SignupScreenState extends State<SignupScreen> {
       _error = null;
     });
     final registration = _regController.text.trim().toUpperCase();
+    _regController.value = TextEditingValue(
+      text: registration,
+      selection: TextSelection.collapsed(offset: registration.length),
+    );
     final api = context.read<ApiService>();
     final auth = context.read<AuthService>();
     final activity = context.read<ActivityService>();
@@ -65,9 +70,19 @@ class _SignupScreenState extends State<SignupScreen> {
       } catch (_) {}
       await prefs.setBool(kSignupSuccessPrefsKey, true);
       await auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      return;
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
       setState(() => _error = authErrorMessage(error, signup: true));
+    } on FirebaseException {
+      await auth.signOut();
+      if (!mounted) return;
+      setState(() {
+        _error =
+            'The university record was found, but the profile could not be saved. Publish the Firestore rules in aicc-mobile, then try again.';
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = describeError(error));
@@ -81,7 +96,12 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
           children: [
             Align(
               alignment: Alignment.centerLeft,
@@ -95,7 +115,7 @@ class _SignupScreenState extends State<SignupScreen> {
               title: 'Create your account',
               subtitle: 'We check your registration number against university records before creating the login.',
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.lg),
             AppCard(
               child: Form(
                 key: _formKey,
@@ -113,7 +133,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         child: Text(
                           _error!,
-                          style: const TextStyle(color: AppColors.danger, height: 1.35),
+                          style: AppTextStyles.muted.copyWith(color: AppColors.danger),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -127,11 +147,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       validator: (value) => validateRegistration(value ?? ''),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Try FA26-BSCS-001, FA26-BBA-001, or FA26-BSPSY-001 if the sample data is loaded.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.35),
+                    Text(
+                      'Use a real record, such as FA26-BSCS-001 (Ayesha Malik), FA26-BBA-001 (Ayesha Sheikh), or FA26-BSPSY-001 (Ayesha Khan).',
+                      style: AppTextStyles.muted.copyWith(fontSize: 12),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: _passwordController,
                       label: 'Password',
@@ -140,7 +160,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       textInputAction: TextInputAction.next,
                       validator: (value) => validatePassword(value ?? ''),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
                     AppTextField(
                       controller: _confirmController,
                       label: 'Confirm password',
@@ -155,7 +175,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         return validatePassword(value ?? '');
                       },
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AppSpacing.lg),
                     AppButton(
                       label: 'Create account',
                       loading: _loading,

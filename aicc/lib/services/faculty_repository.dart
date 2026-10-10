@@ -12,7 +12,7 @@ class FacultyRepository {
   CollectionReference<Map<String, dynamic>> get _faculty =>
       _firestore.collection('faculty');
 
-  Future<List<Faculty>> fetchAll({bool seedIfEmpty = true}) async {
+  Future<List<Faculty>> fetchAll({bool seedIfEmpty = false}) async {
     var snapshot = await _faculty.get();
     if (snapshot.docs.isEmpty && seedIfEmpty) {
       await seedSampleFaculty();
@@ -21,6 +21,20 @@ class FacultyRepository {
     final people = snapshot.docs.map(Faculty.fromDoc).toList();
     people.sort((a, b) => a.fullName.compareTo(b.fullName));
     return people;
+  }
+
+  Future<void> save(Faculty person, {required bool create}) async {
+    final ref = _faculty.doc(person.id);
+    if (create && (await ref.get()).exists) {
+      throw StateError('A teacher with this name already exists.');
+    }
+    await ref.set(person.toMap());
+  }
+
+  Future<void> delete(String id) => _faculty.doc(id).delete();
+
+  Future<void> setStatus(String id, String status) {
+    return _faculty.doc(id).update({'current_status': status});
   }
 
   Future<void> seedSampleFaculty() async {

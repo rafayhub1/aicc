@@ -27,10 +27,22 @@ class StudentDocument {
     final raw = fileUrl?.trim();
     final root = baseUrl.replaceAll(RegExp(r'/+$'), '');
     if (raw != null && raw.isNotEmpty) {
-      if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-      return '$root/${raw.replaceFirst(RegExp(r'^/'), '')}';
+      final absolute = raw.startsWith('http://') || raw.startsWith('https://')
+          ? raw
+          : '$root/${raw.replaceFirst(RegExp(r'^/'), '')}';
+      return _preferHttps(absolute, root);
     }
     final path = docType == 'roll_number_slip' ? 'roll-slip' : 'fee-challan';
     return '$root/students/$studentId/$path';
   }
+}
+
+String _preferHttps(String absolute, String root) {
+  final uri = Uri.tryParse(absolute);
+  final base = Uri.tryParse(root);
+  if (uri == null || base == null) return absolute;
+  if (uri.scheme == 'http' && uri.host == base.host) {
+    return uri.replace(scheme: 'https').toString();
+  }
+  return absolute;
 }

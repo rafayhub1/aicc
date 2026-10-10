@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/formatters.dart';
+import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/transitions.dart';
 import '../../providers/session_provider.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
@@ -12,9 +15,10 @@ import '../../widgets/confirm_dialog.dart';
 import '../chat/chat_screen.dart';
 import '../history/chat_history_screen.dart';
 import '../home/home_screen.dart';
-import '../navigation/indoor_navigation_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../settings/appearance_screen.dart';
 import '../teachers/teachers_screen.dart';
+import 'placeholder_screen.dart';
 
 enum ShellTab { home, chat, history, notifications, teachers, map }
 
@@ -50,6 +54,10 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onSession() {
+    if (_session?.isAdmin == true && mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.admin, (route) => false);
+      return;
+    }
     if (_session?.student != null) _refreshUnread();
   }
 
@@ -91,6 +99,8 @@ class _MainShellState extends State<MainShell> {
     if (!mounted) return;
     context.read<SessionProvider>().clear();
     await context.read<AuthService>().signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   @override
@@ -121,9 +131,23 @@ class _MainShellState extends State<MainShell> {
                       badge: _unread,
                     ),
                     _item(ShellTab.teachers, Icons.groups_rounded, 'Teacher Tracking'),
-                    _item(ShellTab.map, Icons.map_rounded, 'Indoor Navigation'),
+                    _item(
+                      ShellTab.map,
+                      Icons.map_rounded,
+                      'Indoor Navigation',
+                      comingSoon: true,
+                    ),
                   ],
                 ),
+              ),
+              ListTile(
+                leading: Icon(Icons.palette_outlined, color: Theme.of(context).colorScheme.primary),
+                title: const Text('Appearance'),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(context);
+                  Navigator.of(context).push(fadeSlideRoute<void>(const AppearanceScreen()));
+                },
               ),
               const Divider(height: 1),
               ListTile(
@@ -152,7 +176,11 @@ class _MainShellState extends State<MainShell> {
         ShellTab.history => const ChatHistoryScreen(),
         ShellTab.notifications => NotificationsScreen(onChanged: _refreshUnread),
         ShellTab.teachers => const TeachersScreen(),
-        ShellTab.map => const IndoorNavigationScreen(),
+        ShellTab.map => const PlaceholderScreen(
+            title: 'Indoor Navigation',
+            icon: Icons.map_rounded,
+            message: 'Campus directions are coming soon.',
+          ),
       },
     );
   }
@@ -166,36 +194,67 @@ class _MainShellState extends State<MainShell> {
         ShellTab.map => 'Indoor Navigation',
       };
 
-  Widget _item(ShellTab tab, IconData icon, String label, {int badge = 0}) {
-    final selected = _tab == tab;
+  Widget _item(
+    ShellTab tab,
+    IconData icon,
+    String label, {
+    int badge = 0,
+    bool comingSoon = false,
+  }) {
+    final palette = context.palette;
+    final selected = _tab == tab && !comingSoon;
+    final color = comingSoon
+        ? palette.muted
+        : selected
+            ? Theme.of(context).colorScheme.primary
+            : palette.ink;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         selected: selected,
         selectedTileColor: AppColors.primary.withValues(alpha: 0.08),
-        leading: Icon(icon, color: selected ? AppColors.primary : AppColors.muted),
+        leading: Icon(
+          icon,
+          color: comingSoon
+              ? palette.muted
+              : (selected ? Theme.of(context).colorScheme.primary : palette.muted),
+        ),
         title: Text(
           label,
-          style: TextStyle(
+          style: AppTextStyles.label.copyWith(
+            fontSize: 16,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? AppColors.primary : AppColors.ink,
+            color: color,
           ),
         ),
-        trailing: badge > 0
+        trailing: comingSoon
             ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.danger,
+                  color: palette.line,
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(
-                  badge > 9 ? '9+' : '$badge',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                  'Coming soon',
+                  style: AppTextStyles.label.copyWith(fontSize: 12, color: palette.muted),
                 ),
               )
-            : null,
+            : badge > 0
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      badge > 9 ? '9+' : '$badge',
+                      style: AppTextStyles.label.copyWith(color: Colors.white, fontSize: 12),
+                    ),
+                  )
+                : null,
         onTap: () {
+          HapticFeedback.selectionClick();
           Navigator.pop(context);
           _select(tab);
         },
@@ -230,27 +289,16 @@ class _DrawerHeader extends StatelessWidget {
             backgroundColor: Colors.white,
             child: Text(
               initials(name),
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
+              style: AppTextStyles.title.copyWith(fontSize: 18),
             ),
           ),
           const SizedBox(height: 14),
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text(name, style: AppTextStyles.title.copyWith(color: Colors.white, fontSize: 18)),
           if (registration.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               registration,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
+              style: AppTextStyles.muted.copyWith(color: Colors.white.withValues(alpha: 0.85)),
             ),
           ],
         ],

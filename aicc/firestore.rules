@@ -5,6 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
     function ownsNew() {
       return signedIn() && request.resource.data.user_id == request.auth.uid;
     }
@@ -13,31 +17,40 @@ service cloud.firestore {
       return signedIn() && resource.data.user_id == request.auth.uid;
     }
 
+    function keepsOwner() {
+      return request.resource.data.user_id == resource.data.user_id;
+    }
+
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if (signedIn() && request.auth.uid == userId) || isAdmin();
+      allow write: if signedIn() && request.auth.uid == userId;
     }
 
     match /activity_events/{eventId} {
       allow create: if ownsNew();
-      allow read, update, delete: if ownsExisting();
+      allow read: if ownsExisting() || isAdmin();
+      allow delete: if ownsExisting() || isAdmin();
+      allow update: if ownsExisting() && keepsOwner();
     }
 
     match /chat_sessions/{sessionId} {
       allow create: if ownsNew();
-      allow read, update, delete: if ownsExisting();
+      allow read: if ownsExisting() || isAdmin();
+      allow delete: if ownsExisting() || isAdmin();
+      allow update: if ownsExisting() && keepsOwner();
     }
 
     match /chat_messages/{messageId} {
       allow create: if ownsNew();
-      allow read, update, delete: if ownsExisting();
+      allow read: if ownsExisting() || isAdmin();
+      allow delete: if ownsExisting() || isAdmin();
+      allow update: if ownsExisting() && keepsOwner();
     }
 
-    // Faculty is shared reference data. Signed-in students can read it.
-    // Create is allowed so the app can load the sample faculty once.
     match /faculty/{facultyId} {
       allow read: if signedIn();
-      allow create, update: if signedIn();
-      allow delete: if false;
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
     }
   }
 }

@@ -45,7 +45,7 @@ class _AppTextFieldState extends State<AppTextField> {
       validator: widget.validator,
       autofillHints: widget.autofillHints,
       onFieldSubmitted: widget.onSubmitted,
-      style: const TextStyle(fontSize: 16, color: AppColors.ink),
+      style: AppTextStyles.body,
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,

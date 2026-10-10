@@ -28,5 +28,16 @@ class ApiUnknown extends ApiException {
 
 String describeError(Object error) {
   if (error is ApiException) return error.message;
+  if (error is StateError && error.message.isNotEmpty) return error.message;
+  final text = '$error'.toLowerCase();
+  if (text.contains('permission-denied') || text.contains('permission_denied')) {
+    return 'This action is not allowed yet. Publish the latest Firestore rules, then try again.';
+  }
+  if (text.contains('socket') ||
+      text.contains('network') ||
+      text.contains('unavailable') ||
+      text.contains('failed host lookup')) {
+    return 'No internet connection. Check your network and try again.';
+  }
   return 'Something went wrong. Please try again.';
 }

@@ -32,14 +32,12 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
           blendMode: BlendMode.srcATop,
           shaderCallback: (bounds) {
             final dx = bounds.width * (2 * _controller.value - 0.5);
+            final line = context.palette.line;
+            final card = context.palette.card;
             return LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: const [
-                Color(0xFFE4E9EF),
-                Color(0xFFF7F9FB),
-                Color(0xFFE4E9EF),
-              ],
+              colors: [line, card, line],
               stops: const [0.15, 0.5, 0.85],
               transform: _SlideGradient(dx),
             ).createShader(bounds);
@@ -81,7 +79,7 @@ class SkeletonBox extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.line,
+          color: context.palette.line,
           borderRadius: BorderRadius.circular(radius),
         ),
       ),

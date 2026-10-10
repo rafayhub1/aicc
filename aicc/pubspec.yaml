@@ -42,10 +42,11 @@ dependencies:
   google_fonts: ^9.0.0
   http: ^1.6.0
   webview_flutter: ^4.14.1
-  speech_to_text: ^7.5.0
   flutter_tts: ^4.2.5
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.3
+  record: ^7.1.2
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

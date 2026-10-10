@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../core/routes.dart';
 import '../core/theme.dart';
+import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, required this.firebaseReady});
+
+  final bool firebaseReady;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -15,6 +20,33 @@ class _SplashScreenState extends State<SplashScreen>
     vsync: this,
     duration: const Duration(milliseconds: 900),
   )..forward();
+
+  @override
+  void initState() {
+    super.initState();
+    _openNext();
+  }
+
+  Future<void> _openNext() async {
+    final auth = context.read<AuthService>();
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    final restored = await auth.authState().first.timeout(
+      const Duration(seconds: 4),
+      onTimeout: () => auth.currentUser,
+    );
+    if (!mounted) return;
+    var destination = AppRoutes.login;
+    if (!widget.firebaseReady) {
+      destination = AppRoutes.setup;
+    } else if (restored != null) {
+      final admin = await auth.isAdmin(restored);
+      if (!mounted) return;
+      destination = admin ? AppRoutes.admin : AppRoutes.home;
+    }
+    final next = destination;
+    Navigator.of(context).pushReplacementNamed(next);
+  }
 
   @override
   void dispose() {
@@ -51,30 +83,28 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     'AICC',
-                    style: TextStyle(
+                    style: AppTextStyles.title.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
-                      fontSize: 22,
                       letterSpacing: 0.4,
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
-                const Text(
+                const SizedBox(height: AppSpacing.lg),
+                Text(
                   'AICC',
-                  style: TextStyle(
+                  style: AppTextStyles.display.copyWith(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Your campus companion',
-                  style: TextStyle(
+                  style: AppTextStyles.muted.copyWith(
                     color: Colors.white.withValues(alpha: 0.82),
                     fontSize: 15,
                   ),
