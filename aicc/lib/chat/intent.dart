@@ -133,13 +133,15 @@ bool _isFaculty(String text) {
 
 bool _isAcademics(String text) {
   return _containsAny(text, [
-    'attendance',
-    'course',
-    'subject',
-    'cgpa',
-    'gpa',
+    'my attendance',
+    'my course',
+    'my courses',
+    'my subject',
+    'my subjects',
+    'my cgpa',
+    'my gpa',
     'my class',
-    'semester',
+    'my semester',
   ]);
 }
 

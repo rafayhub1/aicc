@@ -5,13 +5,22 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.config import settings
-from app.handbook import format_chunks, search_handbook
+from app.handbook import (
+    detect_language,
+    drops_handbook_number,
+    format_chunks,
+    is_echo,
+    search_handbook,
+    speak_entries,
+)
 
 SYSTEM_INSTRUCTION = """You are AICC, the LGU campus assistant.
-Answer only from the handbook entries below. Quote numbers, days, and fees exactly as written.
-If the entries say the answer is not covered, or no entry matched, say it is not in the student handbook and name the office to confirm with.
-Do not invent the student's own attendance, CGPA, fee status, document status, or a teacher's location. Tell them to ask for that directly.
-Reply in the student's language, including Urdu or Roman Urdu. Use 2 to 4 short sentences. No headings."""
+Answer the student's question from the handbook entries below. Use 2 to 4 short sentences.
+Quote numbers, days, and fees exactly as written.
+Do not repeat the question. Do not transliterate it. Do not reply with only a translation of what the student wrote.
+If no entry matched, say it is not in the student handbook and name the Registrar or the relevant office.
+Do not invent the student's own attendance, CGPA, fee status, document status, or a teacher's location.
+Reply in English."""
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
@@ -103,16 +112,34 @@ def _api_key() -> str:
     return api_key
 
 
+def choose_reply(message: str, model_text: str, chunks: list[dict]) -> str:
+    """Prefer the handbook sentence when the model only rewrites the question."""
+    language = detect_language(message)
+    if language in {"ur", "roman"}:
+        return speak_entries(chunks, language)
+    cleaned = " ".join((model_text or "").split())
+    if cleaned and not is_echo(message, cleaned):
+        fact = chunks[0]["answer"] if chunks else ""
+        if not fact or not drops_handbook_number(cleaned, fact):
+            return cleaned
+    if chunks:
+        return chunks[0]["answer"]
+    return speak_entries([], "en")
+
+
 def answer_question(message: str, history: list[dict]) -> str:
+    chunks = search_handbook(message, history)
+    language = detect_language(message)
+    if language in {"ur", "roman"}:
+        return speak_entries(chunks, language)
     api_key = _api_key()
     model = (settings.groq_chat_model or "qwen/qwen3.8-27b").strip()
-    chunks = search_handbook(message, history)
     context = format_chunks(chunks)
     payload = {
         "model": model,
         "messages": build_messages(message, history, context),
         "temperature": 0.1,
-        "max_tokens": 120 if not chunks else 180,
+        "max_tokens": 160 if not chunks else 240,
     }
     try:
         data = _post_json(
@@ -131,7 +158,7 @@ def answer_question(message: str, history: list[dict]) -> str:
     text = extract_chat_text(data)
     if not text:
         raise GroqError(502, "Groq returned an empty answer.")
-    return text
+    return choose_reply(message, text, chunks)
 
 
 def transcribe_audio(filename: str, audio: bytes, content_type: str) -> str:
@@ -146,7 +173,7 @@ def transcribe_audio(filename: str, audio: bytes, content_type: str) -> str:
                 "--"
                 + boundary
                 + "\r\nContent-Disposition: form-data; name=\"prompt\"\r\n\r\n"
-                + "Student question about campus rules, attendance, fees, or teachers. English, Urdu, or Roman Urdu.\r\n"
+                + "Transcribe the student's words about campus rules. If they speak Urdu, write Urdu script. Do not translate and do not answer.\r\n"
             ).encode(),
             (
                 f"--{boundary}\r\n"

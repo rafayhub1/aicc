@@ -7,8 +7,8 @@ class KnowledgeEntry {
 
 const knowledgeBase = <KnowledgeEntry>[
   KnowledgeEntry(
-    ['attendance policy', 'minimum attendance', 'attendance required', '75'],
-    'You need at least 75% attendance in a course to sit its final exam. The dashboard shows your average for the current semester, and the assistant can break it down course by course.',
+    ['attendance policy', 'minimum attendance', 'attendance required', '80'],
+    'You need at least 80% attendance in a course to sit its final exam. The dashboard shows your average for the current semester, and the assistant can break it down course by course.',
   ),
   KnowledgeEntry(
     ['cgpa', 'gpa calculated', 'grade point', 'how is cgpa'],

@@ -2,7 +2,7 @@
 aicc/lib/chat/knowledge_base.dart so offline answers match the assistant."""
 
 POLICIES = (
-    "You need at least 75% attendance in a course to sit its final exam. The dashboard shows the average for the current semester, and the assistant can break it down course by course.",
+    "You need at least 80% attendance in a course to sit its final exam. The dashboard shows the average for the current semester, and the assistant can break it down course by course.",
     "CGPA is the average of grade points across completed courses, on a 4.0 scale. AICC shows the overall CGPA stored in the university record. It is not recalculated inside the app.",
     "Fee challans are issued each semester. The student can open a challan from Notifications or ask for their fee challan. They should pay it before the date printed on the challan to avoid a late fine.",
     "A roll number slip is issued when the exam office marks it ready. The student needs it to enter the exam hall. The assistant can open it when the document status is ready.",
