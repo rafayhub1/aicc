@@ -1,8 +1,8 @@
 """Retrieve one handbook rule for a student question.
 
-Each Q&A is already one chunk. Ranking is BM25 over English, Urdu, and
-Roman Urdu, with the question weighted above the answer. Urdu and Roman
-Urdu words are expanded to the same terms as the English rule before scoring.
+Each Q&A is one chunk. Ranking mixes word overlap with a multilingual
+vector, so a paraphrase in English or Urdu script can still land on the
+same rule. The reply text is the handbook line, not model prose.
 """
 
 import math
@@ -10,6 +10,8 @@ import re
 from collections import Counter
 from functools import lru_cache
 from pathlib import Path
+
+from app.embeddings import semantic_scores
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 HANDBOOK_PATH = PROJECT_ROOT / "docs" / "lgu_aicc_qa_knowledge_base (1).md"
@@ -365,6 +367,8 @@ _MISSING = {
 
 def _tokens(text: str) -> list[str]:
     cleaned = text.translate(_DIGIT_MAP).lower()
+    for mark in ("?", "؟", "،", ",", "!", "؛", ".", "۔"):
+        cleaned = cleaned.replace(mark, " ")
     return [word for word in _WORD.findall(cleaned) if word not in _STOP and len(word) > 1]
 
 
@@ -459,8 +463,6 @@ def _content_query(message: str) -> Counter:
 
 def _bm25(query: Counter, entry: dict, document_frequency: Counter, average_length: float, total: int) -> float:
     asked = set(query)
-    if not (asked & entry["q_terms"]):
-        return 0.0
     score = 0.0
     k1 = 1.2
     b = 0.2
@@ -477,56 +479,71 @@ def _bm25(query: Counter, entry: dict, document_frequency: Counter, average_leng
     score += 1.5 * len(overlap) / max(1.0, len(entry["q_terms"]) ** 0.5)
     for question in entry["questions"]:
         question_terms = set(_bag(question))
-        if question_terms and question_terms <= asked:
-            score += 3
+        if not question_terms:
+            continue
+        covered = question_terms & asked
+        if covered and len(covered) / len(question_terms) >= 0.8 and len(covered) >= 2:
+            score += 8
     return score
 
 
-def _rank(message: str, limit: int, close_ratio: float) -> list[dict]:
-    query = _content_query(message)
-    if not query:
-        return []
-    entries = load_entries()
+def _scored(message: str) -> list[tuple[float, float, dict]]:
+    entries = list(load_entries())
     if not entries:
         return []
+    query = _content_query(message)
     document_frequency: Counter = Counter()
     for entry in entries:
         document_frequency.update(entry["tf"].keys())
     average_length = sum(entry["length"] for entry in entries) / len(entries)
-    ranked = []
+    vectors = semantic_scores(message, entries, HANDBOOK_PATH.stat().st_mtime_ns)
+    rows = []
     for entry in entries:
-        score = _bm25(query, entry, document_frequency, average_length, len(entries))
-        if score > 0:
-            ranked.append((score, entry))
-    ranked.sort(key=lambda item: item[0], reverse=True)
-    if not ranked or ranked[0][0] < 2.5:
-        return []
-    best = ranked[0][0]
-    chosen = []
-    for score, entry in ranked:
-        if chosen and score < best * close_ratio:
-            break
-        chosen.append({**entry, "score": round(score, 3)})
-        if len(chosen) >= limit:
-            break
-    return chosen
+        lexical = _bm25(query, entry, document_frequency, average_length, len(entries))
+        cosine = vectors.get(entry["id"], 0.0)
+        if lexical <= 0 and cosine <= 0:
+            continue
+        rows.append((lexical, cosine, entry))
+    return rows
+
+
+def _with_score(lexical: float, cosine: float, entry: dict) -> dict:
+    return {**entry, "score": round(max(lexical, cosine), 3)}
+
+
+def retrieve(message: str) -> dict:
+    """One rule, a short list of rules to choose from, or no handbook match."""
+    if not _content_query(message):
+        return {"kind": "clarify", "entries": []}
+    rows = _scored(message)
+    if not rows:
+        return {"kind": "missing", "entries": []}
+    by_words = sorted(rows, key=lambda row: row[0], reverse=True)
+    by_meaning = sorted(rows, key=lambda row: row[1], reverse=True)
+    word_gap = by_words[0][0] - (by_words[1][0] if len(by_words) > 1 else 0.0)
+    if by_words[0][0] >= 8 and word_gap >= 4:
+        return {"kind": "answer", "entries": [_with_score(*by_words[0])]}
+    meaning_gap = by_meaning[0][1] - (by_meaning[1][1] if len(by_meaning) > 1 else 0.0)
+    if by_meaning[0][1] >= 0.70 and meaning_gap >= 0.05:
+        return {"kind": "answer", "entries": [_with_score(*by_meaning[0])]}
+    pool = [row for row in by_meaning if row[1] >= 0.52 or row[0] >= 6]
+    if not pool:
+        return {"kind": "missing", "entries": []}
+    pool.sort(key=lambda row: (row[1], row[0]), reverse=True)
+    return {"kind": "clarify", "entries": [_with_score(*row) for row in pool[:3]]}
 
 
 def search_handbook(message: str, history: list[dict] | None = None, limit: int = 2) -> list[dict]:
     del history
-    return _rank(message, limit, 0.92)
+    found = retrieve(message)
+    if found["kind"] == "missing" or not found["entries"]:
+        return []
+    return found["entries"][:limit]
 
 
 def plan_reply(message: str) -> dict:
     """Decide whether the question names one rule, or is too broad to answer."""
-    if not _content_query(message):
-        return {"kind": "clarify", "entries": []}
-    hits = _rank(message, limit=3, close_ratio=0.72)
-    if not hits:
-        return {"kind": "missing", "entries": []}
-    if len(hits) == 1 or hits[1]["score"] < hits[0]["score"] * 0.72:
-        return {"kind": "answer", "entries": hits[:1]}
-    return {"kind": "clarify", "entries": hits[:3]}
+    return retrieve(message)
 
 
 def clarification_text(message: str, entries: list[dict]) -> str:

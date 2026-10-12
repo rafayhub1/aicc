@@ -52,6 +52,22 @@ class GroqPromptTests(unittest.TestCase):
         self.assertEqual(plan["kind"], "clarify")
         self.assertEqual(plan["entries"], [])
 
+    def test_reworded_attendance_question_still_finds_the_rule(self):
+        plan = plan_reply("Is 70 percent attendance enough to sit the final exam?")
+        self.assertEqual(plan["kind"], "answer")
+        self.assertEqual(plan["entries"][0]["id"], "ACP-01")
+        self.assertIn("80%", plan["entries"][0]["answer"])
+
+    def test_urdu_script_rewording_finds_the_attendance_rule(self):
+        plan = plan_reply("فائنل امتحان کے لیے کتنی حاضری چاہیے؟")
+        self.assertEqual(plan["kind"], "answer")
+        self.assertEqual(plan["entries"][0]["id"], "ACP-01")
+
+    def test_unclear_paraphrase_asks_instead_of_guessing(self):
+        plan = plan_reply("Can I skip classes and still sit the final?")
+        self.assertEqual(plan["kind"], "clarify")
+        self.assertGreaterEqual(len(plan["entries"]), 2)
+
     def test_library_hours_paraphrase_hits_the_timings_rule(self):
         plan = plan_reply("library kab khulti hai")
         self.assertEqual(plan["kind"], "answer")
