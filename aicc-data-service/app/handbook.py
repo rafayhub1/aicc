@@ -1,10 +1,13 @@
-"""Find the handbook answer for a student question.
+"""Retrieve one handbook rule for a student question.
 
-The source is the Q&A file in docs. English, Urdu, and Roman Urdu all
-land on the same rule.
+Each Q&A is already one chunk. Ranking is BM25 over English, Urdu, and
+Roman Urdu, with the question weighted above the answer. Urdu and Roman
+Urdu words are expanded to the same terms as the English rule before scoring.
 """
 
+import math
 import re
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,7 +17,6 @@ HANDBOOK_PATH = PROJECT_ROOT / "docs" / "lgu_aicc_qa_knowledge_base (1).md"
 _WORD = re.compile(r"[a-z0-9%]+|[\u0600-\u06ff]+", re.IGNORECASE)
 _URDU = re.compile(r"[\u0600-\u06ff]")
 _LINE = re.compile(r"^(?:-\s*)?\*\*(Q|A|UQ|UA|RQ|RA):\*\*\s*(.+?)\s*$")
-_NUMBER = re.compile(r"\d+(?:\.\d+)?")
 _DIGIT_MAP = str.maketrans("۰۱۲۳۴۵۶۷۸۹٪", "0123456789%")
 _FIELDS = {"Q": "q", "A": "a", "UQ": "uq", "UA": "ua", "RQ": "rq", "RA": "ra"}
 _PREFIXES = ("ACP", "EXM", "FEE", "DSC", "FAC", "SRV", "ADM")
@@ -106,6 +108,12 @@ _STOP = {
     "karo",
     "karna",
     "kar",
+    "kab",
+    "kb",
+    "milegi",
+    "milega",
+    "milengi",
+    "milenge",
     "liye",
     "yeh",
     "ye",
@@ -254,6 +262,15 @@ _ALIASES = {
     "wapas": ("refund",),
     "freeze": ("freeze",),
     "withdraw": ("withdraw",),
+    "khulti": ("timings",),
+    "khulta": ("timings",),
+    "khulte": ("timings",),
+    "khula": ("timings",),
+    "کھلتی": ("timings",),
+    "کھلتا": ("timings",),
+    "اوقات": ("timings",),
+    "timing": ("timings",),
+    "hours": ("timings",),
 }
 
 _ROMAN_MARKERS = {
@@ -301,6 +318,42 @@ _ROMAN_MARKERS = {
     "tambaku",
     "naukri",
     "shikayat",
+    "khulti",
+    "khulta",
+    "khulte",
+    "milegi",
+    "milega",
+}
+
+# Words that name no campus topic. "kya rules hain" is only these.
+_BROAD = {
+    "rules",
+    "rule",
+    "policy",
+    "policies",
+    "qawaid",
+    "university",
+    "lgu",
+    "student",
+    "students",
+    "campus",
+    "help",
+    "info",
+    "information",
+    "question",
+    "sawal",
+}
+
+_MENU = {
+    "en": "That question is very broad. Ask about attendance, exams, fees, scholarships, the hostel, or the library.",
+    "ur": "یہ سوال بہت عام ہے۔ حاضری، امتحان، فیس، اسکالرشپ، ہاسٹل یا لائبریری کے بارے میں پوچھیں۔",
+    "roman": "Yeh sawal bohot aam hai. Hazri, imtehan, fee, scholarship, hostel, ya library ke bare mein poochain.",
+}
+
+_CLARIFY = {
+    "en": "Which of these do you mean?",
+    "ur": "ان میں سے کون سا سوال ہے؟",
+    "roman": "In mein se kaun sa sawal hai?",
 }
 
 _MISSING = {
@@ -315,11 +368,13 @@ def _tokens(text: str) -> list[str]:
     return [word for word in _WORD.findall(cleaned) if word not in _STOP and len(word) > 1]
 
 
-def _expand(tokens: set[str]) -> set[str]:
-    expanded = set(tokens)
-    for token in tokens:
-        expanded.update(_ALIASES.get(token, ()))
-    return expanded
+def _bag(text: str) -> Counter:
+    counts: Counter = Counter()
+    for token in _tokens(text):
+        counts[token] += 1
+        for alias in _ALIASES.get(token, ()):
+            counts[alias] += 1
+    return counts
 
 
 def detect_language(message: str) -> str:
@@ -329,25 +384,6 @@ def detect_language(message: str) -> str:
     if sum(1 for word in raw if word in _ROMAN_MARKERS) >= 2:
         return "roman"
     return "en"
-
-
-def _numbers(text: str) -> set[str]:
-    return set(_NUMBER.findall(text.translate(_DIGIT_MAP)))
-
-
-def is_echo(question: str, answer: str) -> bool:
-    asked = set(_tokens(question))
-    replied = set(_tokens(answer))
-    if not replied:
-        return True
-    return len(asked & replied) / len(replied) >= 0.8
-
-
-def drops_handbook_number(reply: str, fact: str) -> bool:
-    required = _numbers(fact)
-    if not required:
-        return False
-    return required.isdisjoint(_numbers(reply))
 
 
 def load_entries() -> tuple[dict, ...]:
@@ -369,16 +405,18 @@ def _load_entries(path: str, stamp: int) -> tuple[dict, ...]:
             slot = section_index if 0 <= section_index < len(_PREFIXES) else 0
             counts[slot] += 1
             questions = [block["q"], block.get("uq", ""), block.get("rq", "")]
-            combined = " ".join(
-                [
-                    block["q"],
-                    block["a"],
-                    block.get("uq", ""),
-                    block.get("ua", ""),
-                    block.get("rq", ""),
-                    block.get("ra", ""),
-                ]
+            question_counts: Counter = Counter()
+            for question in questions:
+                question_counts.update(_bag(question))
+            answer_counts = _bag(
+                " ".join([block["a"], block.get("ua", ""), block.get("ra", "")])
             )
+            # The question is the chunk title. Repeating it keeps a shared
+            # word in the answer from outranking the rule the student asked.
+            term_counts = Counter()
+            for token, count in question_counts.items():
+                term_counts[token] += count * 3
+            term_counts.update(answer_counts)
             entries.append(
                 {
                     "id": f"{_PREFIXES[slot]}-{counts[slot]:02d}",
@@ -387,7 +425,11 @@ def _load_entries(path: str, stamp: int) -> tuple[dict, ...]:
                     "ua": block.get("ua", ""),
                     "ra": block.get("ra", ""),
                     "questions": [question for question in questions if question],
-                    "tokens": _expand(set(_tokens(combined))),
+                    "uq": block.get("uq", ""),
+                    "rq": block.get("rq", ""),
+                    "q_terms": frozenset(question_counts),
+                    "tf": dict(term_counts),
+                    "length": sum(term_counts.values()) or 1,
                 }
             )
         block = {}
@@ -408,54 +450,99 @@ def _load_entries(path: str, stamp: int) -> tuple[dict, ...]:
     return tuple(entries)
 
 
-def _score(entry: dict, expanded: set[str]) -> int:
-    overlap = entry["tokens"] & expanded
-    if not overlap:
-        return 0
-    score = len(overlap) * 5
-    if any(len(token) >= 6 for token in overlap):
-        score += 4
-    for question in entry["questions"]:
-        qtoks = set(_tokens(question))
-        if not qtoks:
+def _content_query(message: str) -> Counter:
+    query = _bag(message)
+    for term in [term for term in query if term in _BROAD]:
+        del query[term]
+    return query
+
+
+def _bm25(query: Counter, entry: dict, document_frequency: Counter, average_length: float, total: int) -> float:
+    asked = set(query)
+    if not (asked & entry["q_terms"]):
+        return 0.0
+    score = 0.0
+    k1 = 1.2
+    b = 0.2
+    length = entry["length"]
+    for term, query_count in query.items():
+        frequency = entry["tf"].get(term, 0)
+        if not frequency:
             continue
-        inter = qtoks & expanded
-        if inter == qtoks:
-            score += 8 + len(qtoks)
-        elif len(inter) >= 2:
-            score += len(inter)
+        docs_with_term = document_frequency.get(term, 0)
+        idf = math.log(1 + (total - docs_with_term + 0.5) / (docs_with_term + 0.5))
+        denominator = frequency + k1 * (1 - b + b * length / average_length)
+        score += idf * (frequency * (k1 + 1) / denominator) * (1 + math.log(query_count))
+    overlap = asked & entry["q_terms"]
+    score += 1.5 * len(overlap) / max(1.0, len(entry["q_terms"]) ** 0.5)
+    for question in entry["questions"]:
+        question_terms = set(_bag(question))
+        if question_terms and question_terms <= asked:
+            score += 3
     return score
 
 
-def search_handbook(message: str, history: list[dict] | None = None, limit: int = 3) -> list[dict]:
-    query = message
-    query_tokens = set(_tokens(message))
-    if len(query_tokens) < 2 and not _URDU.search(message) and history:
-        for turn in reversed(history):
-            if turn.get("role") == "user" and turn.get("content"):
-                query = f"{turn['content']} {message}"
-                query_tokens |= set(_tokens(str(turn["content"])))
-                break
-    expanded = _expand(query_tokens)
-    if not expanded:
+def _rank(message: str, limit: int, close_ratio: float) -> list[dict]:
+    query = _content_query(message)
+    if not query:
         return []
+    entries = load_entries()
+    if not entries:
+        return []
+    document_frequency: Counter = Counter()
+    for entry in entries:
+        document_frequency.update(entry["tf"].keys())
+    average_length = sum(entry["length"] for entry in entries) / len(entries)
     ranked = []
-    for entry in load_entries():
-        score = _score(entry, expanded)
+    for entry in entries:
+        score = _bm25(query, entry, document_frequency, average_length, len(entries))
         if score > 0:
             ranked.append((score, entry))
     ranked.sort(key=lambda item: item[0], reverse=True)
-    if not ranked or ranked[0][0] < 8:
+    if not ranked or ranked[0][0] < 2.5:
         return []
     best = ranked[0][0]
     chosen = []
     for score, entry in ranked:
-        if score < max(8, int(best * 0.45)):
+        if chosen and score < best * close_ratio:
             break
-        chosen.append({**entry, "score": score})
+        chosen.append({**entry, "score": round(score, 3)})
         if len(chosen) >= limit:
             break
     return chosen
+
+
+def search_handbook(message: str, history: list[dict] | None = None, limit: int = 2) -> list[dict]:
+    del history
+    return _rank(message, limit, 0.92)
+
+
+def plan_reply(message: str) -> dict:
+    """Decide whether the question names one rule, or is too broad to answer."""
+    if not _content_query(message):
+        return {"kind": "clarify", "entries": []}
+    hits = _rank(message, limit=3, close_ratio=0.72)
+    if not hits:
+        return {"kind": "missing", "entries": []}
+    if len(hits) == 1 or hits[1]["score"] < hits[0]["score"] * 0.72:
+        return {"kind": "answer", "entries": hits[:1]}
+    return {"kind": "clarify", "entries": hits[:3]}
+
+
+def clarification_text(message: str, entries: list[dict]) -> str:
+    language = detect_language(message)
+    if not entries:
+        return _MENU[language]
+    heading = _CLARIFY[language]
+    lines = [heading]
+    for entry in entries[:3]:
+        if language == "ur" and entry.get("uq"):
+            lines.append(f"- {entry['uq']}")
+        elif language == "roman" and entry.get("rq"):
+            lines.append(f"- {entry['rq']}")
+        else:
+            lines.append(f"- {entry['q']}")
+    return "\n".join(lines)
 
 
 def localized_answer(entry: dict, language: str) -> str:
@@ -474,7 +561,7 @@ def speak_entries(entries: list[dict], language: str) -> str:
     if not entries:
         return missing_handbook_answer(language)
     picked = [entries[0]]
-    if len(entries) > 1 and entries[1]["score"] >= max(8, int(entries[0]["score"] * 0.8)):
+    if len(entries) > 1 and entries[1]["score"] >= entries[0]["score"] * 0.92:
         picked.append(entries[1])
     texts = []
     for entry in picked:
@@ -483,8 +570,3 @@ def speak_entries(entries: list[dict], language: str) -> str:
             texts.append(text)
     return "\n\n".join(texts)
 
-
-def format_chunks(entries: list[dict]) -> str:
-    if not entries:
-        return "No handbook entry matched this question."
-    return "\n\n".join(f"[{entry['id']}] {entry['q']}\nAnswer: {entry['answer']}" for entry in entries)

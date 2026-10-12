@@ -12,5 +12,7 @@ void main() {
     expect(classifyIntent('hi').kind, ChatIntentKind.greeting);
     expect(classifyIntent('hey!').kind, ChatIntentKind.greeting);
     expect(classifyIntent('hi, what is my attendance?').kind, ChatIntentKind.academics);
+    expect(classifyIntent('mera cgpa kitna hai').kind, ChatIntentKind.academics);
+    expect(classifyIntent('meri hazri kitni chahiye').kind, isNot(ChatIntentKind.academics));
   });
 }

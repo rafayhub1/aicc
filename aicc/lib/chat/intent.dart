@@ -132,7 +132,7 @@ bool _isFaculty(String text) {
 }
 
 bool _isAcademics(String text) {
-  return _containsAny(text, [
+  final personal = _containsAny(text, [
     'my attendance',
     'my course',
     'my courses',
@@ -142,6 +142,26 @@ bool _isAcademics(String text) {
     'my gpa',
     'my class',
     'my semester',
+    'mera cgpa',
+    'meri cgpa',
+    'mera gpa',
+    'meri gpa',
+    'meri hazri',
+    'mera hazri',
+    'meri attendance',
+    'mera attendance',
+    'میری حاضری',
+    'میرا سی جی پی',
+  ]);
+  if (!personal) return false;
+  return !_containsAny(text, [
+    'chahiye',
+    'zaroori',
+    'policy',
+    'required',
+    'minimum',
+    'چاہیے',
+    'ضروری',
   ]);
 }
 

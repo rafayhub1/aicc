@@ -1,7 +1,7 @@
 import unittest
 
 from app.groq_client import build_messages, choose_reply, extract_chat_text
-from app.handbook import load_entries, search_handbook
+from app.handbook import load_entries, plan_reply, search_handbook
 
 
 class GroqPromptTests(unittest.TestCase):
@@ -18,8 +18,7 @@ class GroqPromptTests(unittest.TestCase):
 
     def test_attendance_search_returns_the_attendance_rule_only(self):
         matches = search_handbook("How much attendance do I need to sit the final exam?")
-        self.assertGreaterEqual(len(matches), 1)
-        self.assertLessEqual(len(matches), 3)
+        self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0]["id"], "ACP-01")
         self.assertIn("80%", matches[0]["answer"])
 
@@ -48,15 +47,38 @@ class GroqPromptTests(unittest.TestCase):
         self.assertEqual(matches[0]["id"], "EXM-10")
         self.assertIn("3,000", matches[0]["answer"])
 
+    def test_generic_question_asks_what_they_mean(self):
+        plan = plan_reply("kya rules hain")
+        self.assertEqual(plan["kind"], "clarify")
+        self.assertEqual(plan["entries"], [])
+
+    def test_library_hours_paraphrase_hits_the_timings_rule(self):
+        plan = plan_reply("library kab khulti hai")
+        self.assertEqual(plan["kind"], "answer")
+        self.assertEqual(plan["entries"][0]["id"], "FAC-02")
+        self.assertIn("Monday to Sunday", plan["entries"][0]["answer"])
+
+    def test_broad_scholarship_question_is_not_one_random_scheme(self):
+        plan = plan_reply("scholarship kaise milegi")
+        if plan["kind"] == "answer":
+            self.assertIn("Six kinds", plan["entries"][0]["answer"])
+        else:
+            self.assertEqual(plan["kind"], "clarify")
+            self.assertGreaterEqual(len(plan["entries"]), 2)
+
     def test_unrelated_question_loads_no_chunks(self):
         self.assertEqual(search_handbook("What is the weather in Lahore today?"), [])
         self.assertEqual(search_handbook("آج لاہور میں موسم کیسا ہے؟"), [])
 
-    def test_english_echo_falls_back_to_the_handbook_sentence(self):
+    def test_model_elaboration_is_replaced_by_the_handbook_line(self):
         question = "How much attendance do I need?"
         matches = search_handbook(question)
-        reply = choose_reply(question, question, matches)
-        self.assertIn("80%", reply)
+        reply = choose_reply(
+            question,
+            "You need 80% attendance, the library is open all week, and you may freeze three semesters.",
+            matches,
+        )
+        self.assertEqual(reply, matches[0]["answer"])
 
     def test_extracts_chat_text_without_think_blocks(self):
         payload = {

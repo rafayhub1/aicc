@@ -5,14 +5,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.config import settings
-from app.handbook import (
-    detect_language,
-    drops_handbook_number,
-    format_chunks,
-    is_echo,
-    search_handbook,
-    speak_entries,
-)
+from app.handbook import clarification_text, detect_language, plan_reply, speak_entries
 
 SYSTEM_INSTRUCTION = """You are AICC, the LGU campus assistant.
 Answer the student's question from the handbook entries below. Use 2 to 4 short sentences.
@@ -113,52 +106,17 @@ def _api_key() -> str:
 
 
 def choose_reply(message: str, model_text: str, chunks: list[dict]) -> str:
-    """Prefer the handbook sentence when the model only rewrites the question."""
-    language = detect_language(message)
-    if language in {"ur", "roman"}:
-        return speak_entries(chunks, language)
-    cleaned = " ".join((model_text or "").split())
-    if cleaned and not is_echo(message, cleaned):
-        fact = chunks[0]["answer"] if chunks else ""
-        if not fact or not drops_handbook_number(cleaned, fact):
-            return cleaned
-    if chunks:
-        return chunks[0]["answer"]
-    return speak_entries([], "en")
+    """Policy answers come from the retrieved rule, not from model prose."""
+    del model_text
+    return speak_entries(chunks, detect_language(message))
 
 
 def answer_question(message: str, history: list[dict]) -> str:
-    chunks = search_handbook(message, history)
-    language = detect_language(message)
-    if language in {"ur", "roman"}:
-        return speak_entries(chunks, language)
-    api_key = _api_key()
-    model = (settings.groq_chat_model or "qwen/qwen3.8-27b").strip()
-    context = format_chunks(chunks)
-    payload = {
-        "model": model,
-        "messages": build_messages(message, history, context),
-        "temperature": 0.1,
-        "max_tokens": 160 if not chunks else 240,
-    }
-    try:
-        data = _post_json(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {**payload, "reasoning_effort": "none"},
-            api_key,
-        )
-    except GroqError as error:
-        if error.status != 400:
-            raise
-        data = _post_json(
-            "https://api.groq.com/openai/v1/chat/completions",
-            payload,
-            api_key,
-        )
-    text = extract_chat_text(data)
-    if not text:
-        raise GroqError(502, "Groq returned an empty answer.")
-    return choose_reply(message, text, chunks)
+    del history
+    plan = plan_reply(message)
+    if plan["kind"] == "clarify":
+        return clarification_text(message, plan["entries"])
+    return speak_entries(plan["entries"], detect_language(message))
 
 
 def transcribe_audio(filename: str, audio: bytes, content_type: str) -> str:

@@ -135,8 +135,10 @@ class ChatEngine {
     }).toList();
     final rows = focused.isEmpty ? current : focused;
     final wantsCgpa = asked.contains('cgpa') || asked.contains('gpa');
-    final wantsAttendance =
-        asked.contains('attendance') || asked.contains('present');
+    final wantsAttendance = asked.contains('attendance') ||
+        asked.contains('present') ||
+        asked.contains('hazri') ||
+        asked.contains('حاضری');
     final wantsCourses = asked.contains('course') || asked.contains('subject');
 
     final buffer = StringBuffer();
