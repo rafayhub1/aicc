@@ -5,14 +5,13 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.config import settings
-from app.knowledge import knowledge_text
+from app.handbook import format_chunks, search_handbook
 
-SYSTEM_INSTRUCTION = """You are AICC, the campus assistant inside a university student app.
-Answer only from the campus knowledge included in this instruction.
-If that knowledge does not contain the answer, say you do not have that information.
-Never invent attendance percentages, CGPA, fee amounts, document status, room numbers, or a teacher's current location.
-If the student asks for their own fee challan, roll number slip, attendance, courses, CGPA, or a named teacher, tell them to ask for that directly so the app can look it up from their record.
-Use plain sentences, stay under 120 words, and reply in the language the student used, including Urdu and Roman Urdu."""
+SYSTEM_INSTRUCTION = """You are AICC, the LGU campus assistant.
+Answer only from the handbook entries below. Quote numbers, days, and fees exactly as written.
+If the entries say the answer is not covered, or no entry matched, say it is not in the student handbook and name the office to confirm with.
+Do not invent the student's own attendance, CGPA, fee status, document status, or a teacher's location. Tell them to ask for that directly.
+Reply in the student's language, including Urdu or Roman Urdu. Use 2 to 4 short sentences. No headings."""
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
@@ -24,16 +23,16 @@ class GroqError(Exception):
         super().__init__(message)
 
 
-def build_messages(message: str, history: list[dict]) -> list[dict]:
+def build_messages(message: str, history: list[dict], handbook_context: str) -> list[dict]:
     messages = [
         {
             "role": "system",
-            "content": f"{SYSTEM_INSTRUCTION}\n\nCampus knowledge:\n{knowledge_text()}",
+            "content": f"{SYSTEM_INSTRUCTION}\n\nHandbook entries:\n{handbook_context}",
         }
     ]
-    for turn in history[-6:]:
+    for turn in history[-4:]:
         role = "user" if turn.get("role") == "user" else "assistant"
-        content = " ".join(str(turn.get("content", "")).split())[:800]
+        content = " ".join(str(turn.get("content", "")).split())[:400]
         if content:
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message.strip()})
@@ -107,16 +106,28 @@ def _api_key() -> str:
 def answer_question(message: str, history: list[dict]) -> str:
     api_key = _api_key()
     model = (settings.groq_chat_model or "qwen/qwen3.8-27b").strip()
-    data = _post_json(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-            "model": model,
-            "messages": build_messages(message, history),
-            "temperature": 0.2,
-            "max_tokens": 400,
-        },
-        api_key,
-    )
+    chunks = search_handbook(message, history)
+    context = format_chunks(chunks)
+    payload = {
+        "model": model,
+        "messages": build_messages(message, history, context),
+        "temperature": 0.1,
+        "max_tokens": 120 if not chunks else 180,
+    }
+    try:
+        data = _post_json(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {**payload, "reasoning_effort": "none"},
+            api_key,
+        )
+    except GroqError as error:
+        if error.status != 400:
+            raise
+        data = _post_json(
+            "https://api.groq.com/openai/v1/chat/completions",
+            payload,
+            api_key,
+        )
     text = extract_chat_text(data)
     if not text:
         raise GroqError(502, "Groq returned an empty answer.")
