@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,7 +21,22 @@ from app.routers import (
     students,
 )
 
-app = FastAPI(title="AICC Dummy Data Service", version="0.4.0")
+log = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        from app.embeddings import warm_handbook
+        from app.handbook import HANDBOOK_PATH, load_entries
+
+        warm_handbook(list(load_entries()), HANDBOOK_PATH.stat().st_mtime_ns)
+    except Exception:
+        log.exception("Handbook embeddings were not started.")
+    yield
+
+
+app = FastAPI(title="AICC Dummy Data Service", version="0.4.0", lifespan=lifespan)
 
 app.include_router(admin.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")

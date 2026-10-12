@@ -226,6 +226,11 @@ _ALIASES = {
     "نوکری": ("job", "placement"),
     "سوسائٹی": ("society",),
     "کریڈٹ": ("credit",),
+    "credits": ("credit",),
+    "cancelled": ("cancel",),
+    "canceled": ("cancel",),
+    "cancels": ("cancel",),
+    "cancellation": ("cancel",),
     "رجسٹریشن": ("registration",),
     "مائیگریشن": ("migration",),
     "منتقلی": ("migration",),
@@ -478,12 +483,17 @@ def _bm25(query: Counter, entry: dict, document_frequency: Counter, average_leng
     overlap = asked & entry["q_terms"]
     score += 1.5 * len(overlap) / max(1.0, len(entry["q_terms"]) ** 0.5)
     for question in entry["questions"]:
-        question_terms = set(_bag(question))
-        if not question_terms:
+        terms = set(_content_query(question))
+        if not terms:
             continue
-        covered = question_terms & asked
-        if covered and len(covered) / len(question_terms) >= 0.8 and len(covered) >= 2:
+        if terms <= asked:
+            # Every meaningful word of this question is in what the student asked.
+            score += 12
+            break
+        covered = terms & asked
+        if len(covered) >= 2 and len(covered) / len(terms) >= 0.8:
             score += 8
+            break
     return score
 
 
@@ -526,7 +536,7 @@ def retrieve(message: str) -> dict:
     meaning_gap = by_meaning[0][1] - (by_meaning[1][1] if len(by_meaning) > 1 else 0.0)
     if by_meaning[0][1] >= 0.70 and meaning_gap >= 0.05:
         return {"kind": "answer", "entries": [_with_score(*by_meaning[0])]}
-    pool = [row for row in by_meaning if row[1] >= 0.52 or row[0] >= 6]
+    pool = [row for row in by_words if row[0] >= 4.5]
     if not pool:
         return {"kind": "missing", "entries": []}
     pool.sort(key=lambda row: (row[1], row[0]), reverse=True)
