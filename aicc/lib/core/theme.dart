@@ -200,12 +200,12 @@ ThemeData _buildTheme(Brightness brightness) {
         displayColor: palette.ink,
       )
       .copyWith(
-        displaySmall: AppTextStyles.display,
-        headlineMedium: AppTextStyles.title,
+        displaySmall: AppTextStyles.display.copyWith(color: palette.ink),
+        headlineMedium: AppTextStyles.title.copyWith(color: primary),
         titleLarge: AppTextStyles.title.copyWith(fontSize: 20, color: palette.ink),
-        bodyLarge: AppTextStyles.body,
-        bodyMedium: AppTextStyles.body.copyWith(fontSize: 15),
-        bodySmall: AppTextStyles.muted,
+        bodyLarge: AppTextStyles.body.copyWith(color: palette.ink),
+        bodyMedium: AppTextStyles.body.copyWith(fontSize: 15, color: palette.ink),
+        bodySmall: AppTextStyles.muted.copyWith(color: palette.muted),
         labelLarge: AppTextStyles.button.copyWith(color: AppColors.primary),
       );
 
@@ -259,7 +259,7 @@ ThemeData _buildTheme(Brightness brightness) {
       textColor: palette.ink,
       minVerticalPadding: AppSpacing.sm,
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      titleTextStyle: AppTextStyles.label.copyWith(fontSize: 16),
+      titleTextStyle: AppTextStyles.label.copyWith(fontSize: 16, color: palette.ink),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -301,8 +301,8 @@ ThemeData _buildTheme(Brightness brightness) {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
-      titleTextStyle: AppTextStyles.title.copyWith(fontSize: 20),
-      contentTextStyle: AppTextStyles.body.copyWith(fontSize: 15),
+      titleTextStyle: AppTextStyles.title.copyWith(fontSize: 20, color: palette.ink),
+      contentTextStyle: AppTextStyles.body.copyWith(fontSize: 15, color: palette.ink),
     ),
     iconTheme: IconThemeData(color: primary, size: 22),
     snackBarTheme: SnackBarThemeData(

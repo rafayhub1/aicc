@@ -124,13 +124,16 @@ class _AdminShellState extends State<AdminShell> {
           ),
         ),
       ),
-      body: switch (_tab) {
-        AdminTab.dashboard => AdminDashboardScreen(onOpen: _select),
-        AdminTab.students => const AdminStudentsScreen(),
-        AdminTab.teachers => const AdminTeachersScreen(),
-        AdminTab.broadcast => const AdminBroadcastScreen(),
-        AdminTab.activity => const AdminActivityScreen(),
-      },
+      body: SafeArea(
+        top: false,
+        child: switch (_tab) {
+          AdminTab.dashboard => AdminDashboardScreen(onOpen: _select),
+          AdminTab.students => const AdminStudentsScreen(),
+          AdminTab.teachers => const AdminTeachersScreen(),
+          AdminTab.broadcast => const AdminBroadcastScreen(),
+          AdminTab.activity => const AdminActivityScreen(),
+        },
+      ),
     );
   }
 

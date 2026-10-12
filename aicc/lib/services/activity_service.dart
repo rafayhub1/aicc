@@ -37,4 +37,8 @@ class ActivityService {
   Future<void> markRead(String eventId) {
     return _events.doc(eventId).update({'read': true});
   }
+
+  Future<void> delete(String eventId) {
+    return _events.doc(eventId).delete();
+  }
 }

@@ -66,9 +66,40 @@ ClassifiedIntent classifyIntent(String raw) {
 }
 
 bool _isGreeting(String text) {
-  return RegExp(
-    r'^(hi|hello|hey|salam|assalam|aoa|good morning|good afternoon|good evening)\b',
-  ).hasMatch(text);
+  var cleaned = text
+      .replaceAll(RegExp("[!?,.']"), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  for (final extra in const [' there', ' aicc']) {
+    if (cleaned.endsWith(extra)) {
+      cleaned = cleaned.substring(0, cleaned.length - extra.length).trim();
+    }
+  }
+  const greetings = {
+    'hi',
+    'hii',
+    'hiii',
+    'hey',
+    'heyy',
+    'hello',
+    'helloo',
+    'helo',
+    'yo',
+    'howdy',
+    'salam',
+    'salaam',
+    'aoa',
+    'assalam',
+    'assalamualaikum',
+    'assalamu alaikum',
+    'assalam o alaikum',
+    'asalamualaikum',
+    'good morning',
+    'good afternoon',
+    'good evening',
+    'good night',
+  };
+  return greetings.contains(cleaned);
 }
 
 bool _isPolicy(String text) {

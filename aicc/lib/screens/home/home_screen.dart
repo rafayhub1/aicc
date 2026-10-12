@@ -20,6 +20,7 @@ import '../../widgets/error_state.dart';
 import '../../widgets/fade_in.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/status_pill.dart';
+import '../../widgets/unibot.dart';
 import '../../widgets/waking_banner.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -115,15 +116,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final courses = _courses ?? const <Course>[];
     final average = averageAttendance(courses);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _refresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.xl),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.lg + bottomInset,
+        ),
         children: [
           FadeIn(child: _WelcomeCard(student: student)),
+          const SizedBox(height: AppSpacing.md),
+          const Center(child: UnibotAvatar(size: 132, interactive: true, showName: true)),
           const SizedBox(height: AppSpacing.md),
           FadeIn(
             delayMs: 40,
@@ -164,7 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('This semester', style: AppTextStyles.title.copyWith(fontSize: 18)),
+          Text(
+            'This semester',
+            style: AppTextStyles.title.copyWith(fontSize: 18, color: Theme.of(context).colorScheme.primary),
+          ),
           const SizedBox(height: AppSpacing.sm),
           if (_loadingCourses && _courses == null) ...[
             const SkeletonBox(height: 88),
@@ -186,14 +198,17 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: AppSpacing.sm),
             ],
           const SizedBox(height: AppSpacing.md),
-          Text('Quick actions', style: AppTextStyles.title.copyWith(fontSize: 18)),
+          Text(
+            'Quick actions',
+            style: AppTextStyles.title.copyWith(fontSize: 18, color: Theme.of(context).colorScheme.primary),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
                 child: _ActionTile(
                   icon: Icons.forum_rounded,
-                  label: 'New Chat',
+                  label: 'Chat',
                   onTap: widget.onNewChat,
                 ),
               ),
@@ -396,9 +411,9 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 6),
-          Text(label, style: AppTextStyles.label),
+          Text(label, style: AppTextStyles.label.copyWith(color: context.palette.ink)),
         ],
       ),
     );
@@ -426,7 +441,7 @@ class _CourseTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   course.courseName,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: context.palette.ink),
                 ),
               ),
               Text(
@@ -474,12 +489,12 @@ class _ActionTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary),
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 8),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: context.palette.ink),
           ),
         ],
       ),

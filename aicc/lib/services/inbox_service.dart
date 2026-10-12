@@ -41,6 +41,14 @@ class InboxService {
     await activity.markRead(item.id);
   }
 
+  Future<void> remove(InboxItem item, String studentId) async {
+    if (item.source == 'backend') {
+      await api.deleteNotification(studentId, item.id);
+      return;
+    }
+    await activity.delete(item.id);
+  }
+
   InboxItem _fromBackend(
     AppNotification notification,
     List<StudentDocument> documents,

@@ -10,6 +10,7 @@ import '../../services/auth_service.dart';
 import '../../services/api_exception.dart';
 import '../../services/api_service.dart';
 import '../../services/inbox_service.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/document_webview.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
@@ -31,6 +32,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<InboxItem>? _items;
   Object? _error;
   bool _loading = true;
+  bool _selecting = false;
+  final Set<String> _selected = {};
   _Filter _filter = _Filter.all;
   String? _loadedFor;
 
@@ -61,7 +64,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       final items = await _inbox.load(studentId: student.id);
       if (!mounted) return;
-      setState(() => _items = items);
+      setState(() {
+        _items = items;
+        _selected.removeWhere((key) => items.every((item) => _key(item) != key));
+        if (_selected.isEmpty) _selecting = false;
+      });
       widget.onChanged();
     } catch (error) {
       if (!mounted) return;
@@ -74,6 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _open(InboxItem item) async {
     final student = context.read<SessionProvider>().student;
     if (student == null) return;
+    if (_selecting) return;
     if (!item.read) {
       try {
         await _inbox.markRead(item, student.id);
@@ -127,6 +135,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ],
           ),
         ),
+        _actions(items),
         WakingBanner(active: _loading),
         Expanded(child: _body(items)),
       ],
@@ -193,18 +202,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final item = items[index];
+          final selected = _selected.contains(_key(item));
           return Material(
-            color: context.palette.card,
+            color: selected
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.16)
+                : context.palette.card,
             borderRadius: BorderRadius.circular(AppRadius.card),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.card),
-              onTap: () => _open(item),
+              onTap: () => _selecting ? _toggle(item) : _open(item),
+              onLongPress: () {
+                setState(() {
+                  _selecting = true;
+                  _selected.add(_key(item));
+                });
+              },
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(_iconFor(item.type), color: AppColors.primary),
+                    Icon(
+                      _selecting
+                          ? (_selected.contains(_key(item))
+                              ? Icons.check_circle_rounded
+                              : Icons.circle_outlined)
+                          : _iconFor(item.type),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -256,6 +281,132 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         },
       ),
     );
+  }
+
+  Widget _actions(List<InboxItem> visible) {
+    final hasAny = (_items ?? const <InboxItem>[]).isNotEmpty;
+    if (!hasAny && !_selecting) return const SizedBox.shrink();
+    if (_selecting) {
+      final allVisibleSelected =
+          visible.isNotEmpty && visible.every((item) => _selected.contains(_key(item)));
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            TextButton(
+              onPressed: () => setState(() {
+                _selecting = false;
+                _selected.clear();
+              }),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: visible.isEmpty
+                  ? null
+                  : () => setState(() {
+                        if (allVisibleSelected) {
+                          for (final item in visible) {
+                            _selected.remove(_key(item));
+                          }
+                        } else {
+                          for (final item in visible) {
+                            _selected.add(_key(item));
+                          }
+                        }
+                      }),
+              child: Text(allVisibleSelected ? 'Deselect' : 'Select all'),
+            ),
+            TextButton(
+              onPressed: _selected.isEmpty ? null : _deleteSelected,
+              child: Text(
+                _selected.isEmpty ? 'Delete' : 'Delete ${_selected.length}',
+                style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          TextButton(
+            onPressed: visible.isEmpty ? null : () => setState(() => _selecting = true),
+            child: const Text('Select'),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: _clearAll,
+            child: Text('Clear all', style: AppTextStyles.label.copyWith(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _key(InboxItem item) => '${item.source}:${item.id}';
+
+  void _toggle(InboxItem item) {
+    setState(() {
+      final key = _key(item);
+      if (!_selected.add(key)) _selected.remove(key);
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    final chosen = (_items ?? const <InboxItem>[])
+        .where((item) => _selected.contains(_key(item)))
+        .toList();
+    if (chosen.isEmpty) return;
+    final confirmed = await confirmAction(
+      context,
+      title: chosen.length == 1 ? 'Delete notification?' : 'Delete ${chosen.length} notifications?',
+      message: 'This removes them from your inbox.',
+      confirmLabel: 'Delete',
+      danger: true,
+    );
+    if (!confirmed || !mounted) return;
+    await _remove(chosen);
+  }
+
+  Future<void> _clearAll() async {
+    final items = _items;
+    if (items == null || items.isEmpty) return;
+    final confirmed = await confirmAction(
+      context,
+      title: 'Clear all notifications?',
+      message: 'This removes every notification from your inbox.',
+      confirmLabel: 'Clear all',
+      danger: true,
+    );
+    if (!confirmed || !mounted) return;
+    await _remove(items);
+  }
+
+  Future<void> _remove(List<InboxItem> items) async {
+    final student = context.read<SessionProvider>().student;
+    if (student == null) return;
+    try {
+      for (final item in items) {
+        await _inbox.remove(item, student.id);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(describeError(error))),
+      );
+      await _load();
+      return;
+    }
+    if (!mounted) return;
+    final keys = items.map(_key).toSet();
+    setState(() {
+      _items = _items?.where((item) => !keys.contains(_key(item))).toList();
+      _selected.removeAll(keys);
+      if (_selected.isEmpty) _selecting = false;
+    });
+    widget.onChanged();
   }
 
   Widget _chip(String label, _Filter filter) {

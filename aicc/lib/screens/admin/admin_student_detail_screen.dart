@@ -93,7 +93,9 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
               ],
             ),
           ),
-          body: TabBarView(
+          body: SafeArea(
+            top: false,
+            child: TabBarView(
             children: [
               _ProfileTab(student: _student, onEdit: _edit, onDelete: _deleteStudent),
               _CoursesTab(studentId: _student.id, maxSemester: _student.semester),
@@ -101,6 +103,7 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
               _NotificationsTab(studentId: _student.id),
               _AccountTab(registration: _student.registrationNumber),
             ],
+            ),
           ),
         ),
       ),

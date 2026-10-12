@@ -14,7 +14,9 @@ class AppearanceScreen extends StatelessWidget {
     final palette = context.palette;
     return Scaffold(
       appBar: AppBar(title: const Text('Appearance')),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Text(
@@ -46,6 +48,7 @@ class AppearanceScreen extends StatelessWidget {
             icon: Icons.dark_mode_rounded,
           ),
         ],
+        ),
       ),
     );
   }

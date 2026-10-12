@@ -84,7 +84,9 @@ class _DocumentWebViewState extends State<DocumentWebView> {
           ),
         ],
       ),
-      body: _failed
+      body: SafeArea(
+        top: false,
+        child: _failed
           ? ErrorState(
               message: 'This document could not be opened. Check your connection and try again.',
               onRetry: _load,
@@ -101,6 +103,7 @@ class _DocumentWebViewState extends State<DocumentWebView> {
                 Expanded(child: WebViewWidget(controller: _controller)),
               ],
             ),
+      ),
     );
   }
 }

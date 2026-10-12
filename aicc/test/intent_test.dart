@@ -9,5 +9,8 @@ void main() {
     expect(classifyIntent('what is the attendance policy').kind, ChatIntentKind.faq);
     expect(classifyIntent('where is Dr. Hamza Qureshi').kind, ChatIntentKind.faculty);
     expect(classifyIntent('hello').kind, ChatIntentKind.greeting);
+    expect(classifyIntent('hi').kind, ChatIntentKind.greeting);
+    expect(classifyIntent('hey!').kind, ChatIntentKind.greeting);
+    expect(classifyIntent('hi, what is my attendance?').kind, ChatIntentKind.academics);
   });
 }

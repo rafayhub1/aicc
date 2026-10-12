@@ -12,13 +12,14 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/inbox_service.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/unibot.dart';
 import '../chat/chat_screen.dart';
 import '../history/chat_history_screen.dart';
 import '../home/home_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../settings/appearance_screen.dart';
+import '../navigation/indoor_navigation_screen.dart';
 import '../teachers/teachers_screen.dart';
-import 'placeholder_screen.dart';
 
 enum ShellTab { home, chat, history, notifications, teachers, map }
 
@@ -122,7 +123,7 @@ class _MainShellState extends State<MainShell> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: [
                     _item(ShellTab.home, Icons.home_rounded, 'Home'),
-                    _item(ShellTab.chat, Icons.forum_rounded, 'New Chat'),
+                    _item(ShellTab.chat, Icons.forum_rounded, 'Chat'),
                     _item(ShellTab.history, Icons.history_rounded, 'Chat History'),
                     _item(
                       ShellTab.notifications,
@@ -131,12 +132,7 @@ class _MainShellState extends State<MainShell> {
                       badge: _unread,
                     ),
                     _item(ShellTab.teachers, Icons.groups_rounded, 'Teacher Tracking'),
-                    _item(
-                      ShellTab.map,
-                      Icons.map_rounded,
-                      'Indoor Navigation',
-                      comingSoon: true,
-                    ),
+                    _item(ShellTab.map, Icons.map_rounded, 'Indoor Navigation'),
                   ],
                 ),
               ),
@@ -166,22 +162,26 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-      body: switch (_tab) {
-        ShellTab.home => HomeScreen(
-            onNewChat: () => _select(ShellTab.chat),
-            onTeachers: () => _select(ShellTab.teachers),
-            onNotifications: () => _select(ShellTab.notifications),
-          ),
-        ShellTab.chat => ChatScreen(key: ValueKey(_chatKey), embedded: true),
-        ShellTab.history => const ChatHistoryScreen(),
-        ShellTab.notifications => NotificationsScreen(onChanged: _refreshUnread),
-        ShellTab.teachers => const TeachersScreen(),
-        ShellTab.map => const PlaceholderScreen(
-            title: 'Indoor Navigation',
-            icon: Icons.map_rounded,
-            message: 'Campus directions are coming soon.',
-          ),
-      },
+      body: SafeArea(
+        top: false,
+        child: Stack(
+          children: [
+            switch (_tab) {
+              ShellTab.home => HomeScreen(
+                  onNewChat: () => _select(ShellTab.chat),
+                  onTeachers: () => _select(ShellTab.teachers),
+                  onNotifications: () => _select(ShellTab.notifications),
+                ),
+              ShellTab.chat => ChatScreen(key: ValueKey(_chatKey), embedded: true),
+              ShellTab.history => const ChatHistoryScreen(),
+              ShellTab.notifications => NotificationsScreen(onChanged: _refreshUnread),
+              ShellTab.teachers => const TeachersScreen(),
+              ShellTab.map => const IndoorNavigationScreen(),
+            },
+            if (_tab != ShellTab.chat) UnibotShortcut(onOpen: () => _select(ShellTab.chat)),
+          ],
+        ),
+      ),
     );
   }
 

@@ -86,7 +86,9 @@ class _AdminStudentFormScreenState extends State<AdminStudentFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(_editing ? 'Edit student' : 'Add student')),
-      body: Form(
+      body: SafeArea(
+        top: false,
+        child: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -171,6 +173,7 @@ class _AdminStudentFormScreenState extends State<AdminStudentFormScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

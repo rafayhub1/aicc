@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +19,7 @@ import '../../services/chat_repository.dart';
 import '../../services/faculty_repository.dart';
 import '../../services/voice_service.dart';
 import '../../widgets/document_webview.dart';
+import '../../widgets/unibot.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/waking_banner.dart';
 
@@ -51,7 +54,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _transcribing = false;
   bool _speakerOn = true;
   bool _loggedCompletion = false;
+  bool _unibotVisiting = false;
   String? _error;
+  Timer? _unibotTimer;
 
   @override
   void initState() {
@@ -64,6 +69,26 @@ class _ChatScreenState extends State<ChatScreen> {
     _sessionId = widget.sessionId;
     _speakerOn = context.read<SharedPreferences>().getBool(kSpeakerEnabledPrefsKey) ?? true;
     if (_sessionId != null) _loadHistory();
+    if (!widget.readOnly) _armUnibotVisit();
+  }
+
+  void _noteMicIdle() {
+    if (!mounted || widget.readOnly || _listening || _transcribing) return;
+    _armUnibotVisit();
+  }
+
+  void _armUnibotVisit() {
+    _unibotTimer?.cancel();
+    if (_listening || _transcribing) return;
+    _unibotTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted || _listening || _transcribing) return;
+      setState(() => _unibotVisiting = true);
+      _unibotTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        setState(() => _unibotVisiting = false);
+        _armUnibotVisit();
+      });
+    });
   }
 
   Future<void> _loadHistory() async {
@@ -87,6 +112,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _loggedCompletion = true;
       _activity.log('chat_completed').then((_) {}, onError: (_, _) {});
     }
+    _unibotTimer?.cancel();
     _voice.dispose();
     _input.dispose();
     _scroll.dispose();
@@ -96,8 +122,9 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
+      final target = widget.readOnly ? _scroll.position.maxScrollExtent : 0.0;
       _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
+        target,
         duration: const Duration(milliseconds: 240),
         curve: Curves.easeOut,
       );
@@ -175,7 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
               style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
             ),
           ),
-        Expanded(child: _messageList()),
+        Expanded(child: _conversation()),
         if (!widget.readOnly) _composer(),
       ],
     );
@@ -185,7 +212,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Text(widget.readOnly ? 'Chat replay' : 'New Chat'),
         actions: [_speakerButton()],
       ),
-      body: body,
+      body: SafeArea(top: false, child: body),
     );
   }
 
@@ -202,7 +229,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _messageList() {
+  Widget _conversation() {
     if (_loadingHistory) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -213,46 +240,137 @@ class _ChatScreenState extends State<ChatScreen> {
         message: _error!,
       );
     }
-    if (_messages.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const SizedBox(height: 12),
-          const Text(
-            'Ask about fees, attendance, courses, or a teacher.',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.3),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Type a question, or tap the microphone and speak.',
-            style: TextStyle(color: context.palette.muted, height: 1.4),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+    if (widget.readOnly) return _messageList();
+
+    return Column(
+      children: [
+        Expanded(flex: _messages.isEmpty ? 1 : 4, child: _voiceHub()),
+        if (_messages.isNotEmpty) Expanded(flex: 5, child: _messageList()),
+      ],
+    );
+  }
+
+  Widget _voiceHub() {
+    final busy = _replying || _transcribing;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 190;
+        final size = compact ? 88.0 : 112.0;
+        final showUnibot = _listening || _transcribing || _unibotVisiting;
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final question in suggestedQuestions)
-                ActionChip(
-                  label: Text(question),
-                  onPressed: () {
+              SizedBox(
+                width: size + 36,
+                height: size + 28,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Material(
+                      color: _listening ? AppColors.danger : AppColors.primary,
+                      elevation: 8,
+                      shadowColor: AppColors.primary.withValues(alpha: 0.35),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: busy ? null : _toggleMic,
+                        child: SizedBox(
+                          width: size,
+                          height: size,
+                          child: Icon(
+                            _transcribing
+                                ? Icons.hourglass_top_rounded
+                                : _listening
+                                    ? Icons.stop_rounded
+                                    : Icons.mic_rounded,
+                            color: Colors.white,
+                            size: compact ? 36 : 48,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: AnimatedScale(
+                          scale: showUnibot ? 1 : 0,
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutBack,
+                          child: UnibotAvatar(
+                            size: compact ? 48 : 64,
+                            mood: _listening || _transcribing ? UnibotMood.thumbsUp : UnibotMood.wink,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: compact ? 8 : 16),
+              Text(
+                _transcribing
+                    ? 'Turning speech into text…'
+                    : _listening
+                        ? 'Listening… tap to send'
+                        : 'Tap to talk',
+                style: TextStyle(
+                  color: context.palette.muted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: compact ? 13 : null,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _messageList() {
+    final newestFirst = !widget.readOnly;
+    return ListView(
+      controller: _scroll,
+      reverse: newestFirst,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      children: [
+        if (newestFirst) ...[
+          if (_replying) const _TypingIndicator(),
+          WakingBanner(active: _replying),
+          for (final message in _messages.reversed) _Bubble(message: message),
+        ] else ...[
+          for (final message in _messages) _Bubble(message: message),
+        ],
+      ],
+    );
+  }
+
+  Widget _suggestionQueue() {
+    final palette = context.palette;
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: suggestedQuestions.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final question = suggestedQuestions[index];
+          return ActionChip(
+            visualDensity: VisualDensity.compact,
+            backgroundColor: palette.card,
+            side: BorderSide(color: palette.line),
+            label: Text(question),
+            onPressed: _replying
+                ? null
+                : () {
                     _input.text = question;
                     _send();
                   },
-                ),
-            ],
-          ),
-        ],
-      );
-    }
-    return ListView(
-      controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      children: [
-        for (final message in _messages) _Bubble(message: message),
-        if (_replying) const _TypingIndicator(),
-        WakingBanner(active: _replying),
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -275,6 +393,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               const SizedBox(height: 8),
             ],
+            _suggestionQueue(),
+            const SizedBox(height: 8),
             Row(
               children: [
                 _RoundIconButton(
@@ -320,13 +440,17 @@ class _ChatScreenState extends State<ChatScreen> {
         _listening = false;
         _transcribing = path != null;
       });
-      if (path == null) return;
+      if (path == null) {
+        _noteMicIdle();
+        return;
+      }
       try {
         final spoken = await context.read<ApiService>().transcribeSpeech(path);
         if (!mounted) return;
         _input.text = spoken;
         _input.selection = TextSelection.collapsed(offset: _input.text.length);
         setState(() => _transcribing = false);
+        _noteMicIdle();
         if (spoken.trim().isNotEmpty) {
           await _send();
         } else {
@@ -335,6 +459,7 @@ class _ChatScreenState extends State<ChatScreen> {
       } catch (error) {
         if (!mounted) return;
         setState(() => _transcribing = false);
+        _noteMicIdle();
         _showMicHelp(describeError(error));
       }
       return;
@@ -350,10 +475,12 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       await _voice.startRecording();
       if (!mounted) return;
+      _unibotTimer?.cancel();
       setState(() => _listening = true);
     } catch (_) {
       if (!mounted) return;
       setState(() => _listening = false);
+      _noteMicIdle();
       _showMicHelp(
         'Microphone permission is needed to speak a question. Allow it when Android asks, or turn the microphone on for AICC in system settings.',
       );

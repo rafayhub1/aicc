@@ -38,9 +38,8 @@ class ChatEngine {
     switch (intent.kind) {
       case ChatIntentKind.greeting:
         final name = student == null ? 'there' : firstName(student.name);
-        return ChatReply(
-          'Hello $name. I can open your fee challan or roll number slip, check attendance, and look up a teacher.',
-        );
+        final offer = _greetingOffers[text.trim().length % _greetingOffers.length];
+        return ChatReply('Hello $name. $offer');
       case ChatIntentKind.faq:
       case ChatIntentKind.unknown:
         return _groundedReply(text, intent, history);
@@ -284,6 +283,12 @@ class ChatEngine {
         .toList();
   }
 }
+
+const _greetingOffers = [
+  'How may I be of assistance?',
+  'What would you like to know?',
+  'How can I help you?',
+];
 
 const _fallback =
     'I can help with your fee challan, roll number slip, courses, attendance, teachers, and campus rules. Try one of the suggestions, or ask in your own words.';

@@ -17,7 +17,9 @@ class TeacherDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Teacher')),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           AppCard(
@@ -82,6 +84,7 @@ class TeacherDetailScreen extends StatelessWidget {
             onOpen: () => _open(context, Uri(scheme: 'tel', path: faculty.phone)),
           ),
         ],
+        ),
       ),
     );
   }

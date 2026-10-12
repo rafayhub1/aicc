@@ -180,7 +180,10 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                   children: [
                                     Text(
                                       person.fullName,
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: context.palette.ink,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
