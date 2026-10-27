@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException
+"""In-app notices for one student, plus the device token used for push alerts."""
 
+from fastapi import APIRouter, Depends, Header, HTTPException
+from firebase_admin import auth
 from google.cloud import firestore
+from pydantic import BaseModel, Field
 
-from app.firebase import get_db
+from app import push
+from app.firebase import get_db, get_mobile_app
 from app.firestore_helpers import get_student_data
 from app.models import NotificationIn, NotificationOut, NotificationUpdate
 from app.serializers import doc_to_dict
@@ -12,9 +16,41 @@ router = APIRouter(
 )
 
 
+class PushTokenIn(BaseModel):
+    token: str = Field(min_length=1, max_length=4096)
+
+
+def require_user(authorization: str | None = Header(default=None)) -> dict:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Sign-in required")
+    token = authorization.split(" ", 1)[1].strip()
+    try:
+        return auth.verify_id_token(token, app=get_mobile_app())
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Sign-in required") from exc
+
+
 def _require_student(db, student_id: str) -> None:
     if get_student_data(db, student_id) is None:
         raise HTTPException(status_code=404, detail="Student not found")
+
+
+@router.post("/push-token", status_code=204)
+def register_push_token(
+    student_id: str, body: PushTokenIn, _user: dict = Depends(require_user)
+):
+    db = get_db()
+    _require_student(db, student_id)
+    push.add_token(db.collection("students").document(student_id), body.token)
+
+
+@router.delete("/push-token", status_code=204)
+def unregister_push_token(
+    student_id: str, body: PushTokenIn, _user: dict = Depends(require_user)
+):
+    db = get_db()
+    _require_student(db, student_id)
+    push.remove_token(db.collection("students").document(student_id), body.token)
 
 
 def _to_notification_out(doc) -> NotificationOut:
@@ -50,6 +86,11 @@ def create_notification(student_id: str, notification: NotificationIn):
         .document()
     )
     ref.set(payload)
+    push.notify_student(
+        db.collection("students").document(student_id).get(),
+        notification.type,
+        notification.message,
+    )
 
     saved = ref.get()
     data = doc_to_dict(saved)

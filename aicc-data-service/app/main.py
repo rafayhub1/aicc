@@ -1,3 +1,9 @@
+"""AICC data service entry point.
+
+Starts the FastAPI app, mounts every /api router, warms handbook embeddings
+in the background, and serves the static admin site at /admin.
+"""
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -17,6 +23,7 @@ from app.routers import (
     docs_pages,
     documents,
     notifications,
+    places,
     stats,
     students,
 )
@@ -26,6 +33,7 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load handbook embeddings when the process starts, then shut down cleanly."""
     try:
         from app.embeddings import warm_handbook
         from app.handbook import HANDBOOK_PATH, load_entries
@@ -46,16 +54,19 @@ app.include_router(courses.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(places.router, prefix="/api")
 app.include_router(docs_pages.router)
 
 
 @app.get("/")
 def root():
+    """Send the browser to the admin UI."""
     return RedirectResponse(url="/admin")
 
 
 @app.get("/health")
 def health():
+    """Liveness check used by the app and by hosting health probes."""
     return {"status": "ok"}
 
 

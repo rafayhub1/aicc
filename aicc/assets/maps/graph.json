@@ -1,0 +1,671 @@
+{
+  "nodes": [
+    {
+      "id": "gate",
+      "lat": 31.468981,
+      "lng": 74.405948,
+      "label": "Main Gate",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "south",
+      "lat": 31.469184,
+      "lng": 74.406117,
+      "label": "South walk",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "cafe",
+      "lat": 31.470176,
+      "lng": 74.406926,
+      "label": "Canteen",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "park",
+      "lat": 31.470852,
+      "lng": 74.406825,
+      "label": "Parking",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "moto",
+      "lat": 31.470717,
+      "lng": 74.406353,
+      "label": "Motorcycle parking",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "masjid",
+      "lat": 31.469905,
+      "lng": 74.406589,
+      "label": "Green lawn",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "central",
+      "lat": 31.46977,
+      "lng": 74.406386,
+      "label": "Paved area",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "fountain",
+      "lat": 31.469319,
+      "lng": 74.406353,
+      "label": "Circular lawn",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "wash",
+      "lat": 31.469635,
+      "lng": 74.406454,
+      "label": "Washrooms",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "west",
+      "lat": 31.46959,
+      "lng": 74.406083,
+      "label": "Admin walk",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "east",
+      "lat": 31.470131,
+      "lng": 74.406723,
+      "label": "East walk",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "north",
+      "lat": 31.470401,
+      "lng": 74.40642,
+      "label": "North walk",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "admin",
+      "lat": 31.46959,
+      "lng": 74.405982,
+      "label": "Admin",
+      "building": "Admin",
+      "floor": "Ground"
+    },
+    {
+      "id": "lib",
+      "lat": 31.46995,
+      "lng": 74.40615,
+      "label": "Library",
+      "building": "Faculty A",
+      "floor": "Ground"
+    },
+    {
+      "id": "blockb",
+      "lat": 31.469815,
+      "lng": 74.406251,
+      "label": "Faculty B door",
+      "building": "Faculty B",
+      "floor": "Ground"
+    },
+    {
+      "id": "blockc",
+      "lat": 31.470131,
+      "lng": 74.406521,
+      "label": "Faculty C",
+      "building": "Faculty C",
+      "floor": "Ground"
+    },
+    {
+      "id": "blockd",
+      "lat": 31.470176,
+      "lng": 74.406757,
+      "label": "Canteen wing",
+      "building": "Canteen",
+      "floor": "Ground"
+    },
+    {
+      "id": "blocke",
+      "lat": 31.470086,
+      "lng": 74.406184,
+      "label": "Faculty wing",
+      "building": "Faculty A",
+      "floor": "Ground"
+    },
+    {
+      "id": "blocka",
+      "lat": 31.469996,
+      "lng": 74.406117,
+      "label": "Faculty A",
+      "building": "Faculty A",
+      "floor": "Ground"
+    },
+    {
+      "id": "sports",
+      "lat": 31.470582,
+      "lng": 74.406622,
+      "label": "Play ground",
+      "building": "Play Ground",
+      "floor": "Ground"
+    },
+    {
+      "id": "labs",
+      "lat": 31.470041,
+      "lng": 74.40642,
+      "label": "Labs",
+      "building": "Faculty C",
+      "floor": "Ground"
+    },
+    {
+      "id": "gate3",
+      "lat": 31.470401,
+      "lng": 74.40615,
+      "label": "North gate",
+      "building": "",
+      "floor": ""
+    },
+    {
+      "id": "auditorium",
+      "lat": 31.470041,
+      "lng": 74.406285,
+      "label": "Hall",
+      "building": "Faculty B",
+      "floor": "Ground"
+    },
+    {
+      "id": "stationery",
+      "lat": 31.469815,
+      "lng": 74.405948,
+      "label": "Stationery",
+      "building": "Admin",
+      "floor": "Ground"
+    },
+    {
+      "id": "bbg",
+      "lat": 31.469815,
+      "lng": 74.406285,
+      "label": "Faculty B hall",
+      "building": "Faculty B",
+      "floor": "Ground"
+    },
+    {
+      "id": "bbgs",
+      "lat": 31.46986,
+      "lng": 74.406319,
+      "label": "Faculty B stairs",
+      "building": "Faculty B",
+      "floor": "Ground"
+    },
+    {
+      "id": "bb1s",
+      "lat": 31.46986,
+      "lng": 74.406319,
+      "label": "Faculty B stairs",
+      "building": "Faculty B",
+      "floor": "First"
+    },
+    {
+      "id": "bbgl",
+      "lat": 31.469815,
+      "lng": 74.406353,
+      "label": "Faculty B lift",
+      "building": "Faculty B",
+      "floor": "Ground"
+    },
+    {
+      "id": "bb1l",
+      "lat": 31.469815,
+      "lng": 74.406353,
+      "label": "Faculty B lift",
+      "building": "Faculty B",
+      "floor": "First"
+    },
+    {
+      "id": "bb1",
+      "lat": 31.46995,
+      "lng": 74.406319,
+      "label": "Classroom B-104",
+      "building": "Faculty B",
+      "floor": "First"
+    }
+  ],
+  "edges": [
+    {
+      "a": "gate",
+      "b": "south",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "south",
+      "b": "cafe",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "south",
+      "b": "park",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "south",
+      "b": "central",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "south",
+      "b": "masjid",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "masjid",
+      "b": "moto",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "central",
+      "b": "fountain",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "central",
+      "b": "wash",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "central",
+      "b": "west",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "central",
+      "b": "east",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "central",
+      "b": "north",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "west",
+      "b": "lib",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "west",
+      "b": "blockb",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "lib",
+      "b": "sports",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "north",
+      "b": "admin",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "north",
+      "b": "blocke",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "admin",
+      "b": "blocka",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "admin",
+      "b": "auditorium",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "admin",
+      "b": "stationery",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "east",
+      "b": "blockd",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "east",
+      "b": "labs",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "east",
+      "b": "blockc",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "labs",
+      "b": "gate3",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "blockb",
+      "b": "bbg",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "bbg",
+      "b": "bbgs",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "bbg",
+      "b": "bbgl",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "bbgs",
+      "b": "bb1s",
+      "stairs": true,
+      "accessible": true
+    },
+    {
+      "a": "bbgl",
+      "b": "bb1l",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "bb1s",
+      "b": "bb1",
+      "stairs": false,
+      "accessible": true
+    },
+    {
+      "a": "bb1l",
+      "b": "bb1",
+      "stairs": false,
+      "accessible": true
+    }
+  ],
+  "campusPolygon": [
+    {
+      "lat": 31.468891,
+      "lng": 74.405678
+    },
+    {
+      "lat": 31.468891,
+      "lng": 74.406622
+    },
+    {
+      "lat": 31.46968,
+      "lng": 74.407162
+    },
+    {
+      "lat": 31.470943,
+      "lng": 74.407061
+    },
+    {
+      "lat": 31.470898,
+      "lng": 74.406049
+    },
+    {
+      "lat": 31.469996,
+      "lng": 74.405661
+    }
+  ],
+  "gates": [
+    "main-gate",
+    "gate-3"
+  ],
+  "sitePlan": {
+    "image": "assets/maps/lgu_site_plan.png",
+    "south": 31.468823,
+    "west": 74.405577,
+    "north": 31.471078,
+    "east": 74.407263
+  },
+  "buildings": [
+    {
+      "id": "admin",
+      "name": "Admin",
+      "category": "Admin",
+      "polygon": [
+        {
+          "lat": 31.46977,
+          "lng": 74.405847
+        },
+        {
+          "lat": 31.46977,
+          "lng": 74.406117
+        },
+        {
+          "lat": 31.469409,
+          "lng": 74.406117
+        },
+        {
+          "lat": 31.469409,
+          "lng": 74.405847
+        }
+      ]
+    },
+    {
+      "id": "faculty-a",
+      "name": "Faculty A",
+      "category": "Academic",
+      "polygon": [
+        {
+          "lat": 31.470108,
+          "lng": 74.406032
+        },
+        {
+          "lat": 31.470108,
+          "lng": 74.406268
+        },
+        {
+          "lat": 31.469883,
+          "lng": 74.406268
+        },
+        {
+          "lat": 31.469883,
+          "lng": 74.406032
+        }
+      ]
+    },
+    {
+      "id": "faculty-b",
+      "name": "Faculty B",
+      "category": "Academic",
+      "polygon": [
+        {
+          "lat": 31.469973,
+          "lng": 74.406167
+        },
+        {
+          "lat": 31.469973,
+          "lng": 74.406403
+        },
+        {
+          "lat": 31.469748,
+          "lng": 74.406403
+        },
+        {
+          "lat": 31.469748,
+          "lng": 74.406167
+        }
+      ]
+    },
+    {
+      "id": "faculty-c",
+      "name": "Faculty C",
+      "category": "Academic",
+      "polygon": [
+        {
+          "lat": 31.470244,
+          "lng": 74.406403
+        },
+        {
+          "lat": 31.470244,
+          "lng": 74.406639
+        },
+        {
+          "lat": 31.470018,
+          "lng": 74.406639
+        },
+        {
+          "lat": 31.470018,
+          "lng": 74.406403
+        }
+      ]
+    },
+    {
+      "id": "canteen",
+      "name": "Canteen",
+      "category": "Food",
+      "polygon": [
+        {
+          "lat": 31.470277,
+          "lng": 74.406825
+        },
+        {
+          "lat": 31.470277,
+          "lng": 74.407027
+        },
+        {
+          "lat": 31.470075,
+          "lng": 74.407027
+        },
+        {
+          "lat": 31.470075,
+          "lng": 74.406825
+        }
+      ]
+    },
+    {
+      "id": "lawn",
+      "name": "Circular Lawn",
+      "category": "Sports",
+      "polygon": [
+        {
+          "lat": 31.469477,
+          "lng": 74.406218
+        },
+        {
+          "lat": 31.469477,
+          "lng": 74.406487
+        },
+        {
+          "lat": 31.469161,
+          "lng": 74.406487
+        },
+        {
+          "lat": 31.469161,
+          "lng": 74.406218
+        }
+      ]
+    },
+    {
+      "id": "playground",
+      "name": "Play Ground",
+      "category": "Sports",
+      "polygon": [
+        {
+          "lat": 31.47074,
+          "lng": 74.406454
+        },
+        {
+          "lat": 31.47074,
+          "lng": 74.406791
+        },
+        {
+          "lat": 31.470424,
+          "lng": 74.406791
+        },
+        {
+          "lat": 31.470424,
+          "lng": 74.406454
+        }
+      ]
+    },
+    {
+      "id": "parking",
+      "name": "Parking",
+      "category": "Parking",
+      "polygon": [
+        {
+          "lat": 31.470965,
+          "lng": 74.40669
+        },
+        {
+          "lat": 31.470965,
+          "lng": 74.40696
+        },
+        {
+          "lat": 31.47074,
+          "lng": 74.40696
+        },
+        {
+          "lat": 31.47074,
+          "lng": 74.40669
+        }
+      ]
+    }
+  ],
+  "floors": [
+    {
+      "id": "block-b-ground",
+      "building": "Faculty B",
+      "floor": "Ground",
+      "image": "assets/maps/block_b_ground.png",
+      "south": 31.469725,
+      "west": 74.406184,
+      "north": 31.469996,
+      "east": 74.40642
+    },
+    {
+      "id": "block-b-first",
+      "building": "Faculty B",
+      "floor": "First",
+      "image": "assets/maps/block_b_first.png",
+      "south": 31.469725,
+      "west": 74.406184,
+      "north": 31.469996,
+      "east": 74.40642
+    }
+  ]
+}

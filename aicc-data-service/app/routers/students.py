@@ -1,3 +1,8 @@
+"""Academic student records in the dummy-data Firebase project.
+
+The document id is the registration number, for example FA26-BSCS-001.
+"""
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app.academics import DEPARTMENT_CODES, SECTIONS
@@ -9,11 +14,13 @@ from app.serializers import doc_to_dict
 router = APIRouter(prefix="/students", tags=["students"])
 
 
-def _student_id(registration_number: str) -> str:
+def registration_document_id(registration_number: str) -> str:
+    """Use the trimmed registration number as the Firestore document id."""
     return registration_number.strip()
 
 
-def _to_student_out(doc) -> StudentOut:
+def student_response(doc) -> StudentOut:
+    """Build the API student object from a Firestore document."""
     data = doc_to_dict(doc)
     return StudentOut(id=doc.id, **data)
 
@@ -24,6 +31,7 @@ def list_students(
     semester: int | None = Query(default=None, ge=1, le=4),
     section: str | None = Query(default=None),
 ):
+    """List students, optionally filtered by department, semester, and section."""
     if department and department not in DEPARTMENT_CODES:
         raise HTTPException(status_code=400, detail="Invalid department")
     if section and section not in SECTIONS:
@@ -38,13 +46,14 @@ def list_students(
     if section:
         query = query.where("section", "==", section)
 
-    return [_to_student_out(doc) for doc in query.stream()]
+    return [student_response(doc) for doc in query.stream()]
 
 
 @router.post("", response_model=StudentOut, status_code=201)
 def create_student(student: StudentIn):
+    """Create a student. Fails with 409 when that registration number exists."""
     db = get_db()
-    doc_id = _student_id(student.registrationNumber)
+    doc_id = registration_document_id(student.registrationNumber)
     ref = db.collection("students").document(doc_id)
     if ref.get().exists:
         raise HTTPException(status_code=409, detail="Student already exists")
@@ -54,21 +63,23 @@ def create_student(student: StudentIn):
 
 @router.get("/{student_id}", response_model=StudentOut)
 def get_student(student_id: str):
+    """Return one student by registration number."""
     db = get_db()
     doc = db.collection("students").document(student_id).get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Student not found")
-    return _to_student_out(doc)
+    return student_response(doc)
 
 
 @router.put("/{student_id}", response_model=StudentOut)
 def update_student(student_id: str, student: StudentIn):
+    """Replace a student. A new registration number moves the document."""
     db = get_db()
     ref = db.collection("students").document(student_id)
     if not ref.get().exists:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    new_id = _student_id(student.registrationNumber)
+    new_id = registration_document_id(student.registrationNumber)
     payload = student.model_dump()
     if new_id != student_id:
         if db.collection("students").document(new_id).get().exists:
@@ -86,6 +97,7 @@ def update_student(student_id: str, student: StudentIn):
 
 @router.patch("/{student_id}", response_model=StudentOut)
 def partial_update_student(student_id: str, update: StudentUpdate):
+    """Change only the fields sent in the body."""
     db = get_db()
     ref = db.collection("students").document(student_id)
     doc = ref.get()
@@ -101,6 +113,7 @@ def partial_update_student(student_id: str, update: StudentUpdate):
 
 @router.delete("/{student_id}", status_code=204)
 def delete_student(student_id: str):
+    """Delete the student and their courses, notices, and documents."""
     db = get_db()
     if not student_exists(db, student_id):
         raise HTTPException(status_code=404, detail="Student not found")

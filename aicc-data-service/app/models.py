@@ -1,3 +1,5 @@
+"""Request and response shapes for students, courses, notices, documents, and places."""
+
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -96,3 +98,41 @@ class DocumentUpdate(BaseModel):
     docType: DocType | None = None
     status: DocStatus | None = None
     fileUrl: str | None = None
+
+
+class Entrance(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
+
+class PlaceIn(BaseModel):
+    id: str = Field(min_length=1, max_length=80, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    name: str = Field(min_length=1, max_length=80)
+    aliases: list[str] = Field(default_factory=list, max_length=20)
+    category: str = Field(min_length=1, max_length=40)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    entrance: Entrance | None = None
+    building: str = ""
+    floor: str = ""
+    hours: str = ""
+    description: str = ""
+    photoUrl: str = ""
+    nodeId: str = ""
+    isActive: bool = True
+
+
+class PlaceUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    aliases: list[str] | None = None
+    category: str | None = None
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+    entrance: Entrance | None = None
+    building: str | None = None
+    floor: str | None = None
+    hours: str | None = None
+    description: str | None = None
+    photoUrl: str | None = None
+    nodeId: str | None = None
+    isActive: bool | None = None

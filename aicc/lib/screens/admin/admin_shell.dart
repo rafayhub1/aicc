@@ -9,8 +9,10 @@ import '../../core/transitions.dart';
 import '../../providers/session_provider.dart';
 import '../../services/activity_service.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/brand_header.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../settings/appearance_screen.dart';
+import 'mapping_canvas_screen.dart';
 import 'admin_activity_screen.dart';
 import 'admin_broadcast_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -29,6 +31,7 @@ class AdminShell extends StatefulWidget {
 class _AdminShellState extends State<AdminShell> {
   AdminTab _tab = AdminTab.dashboard;
   SessionProvider? _session;
+  bool _leaving = false;
 
   @override
   void initState() {
@@ -49,9 +52,14 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   void _onSession() {
-    if (_session?.role == SessionRole.student && _session?.student != null && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
-    }
+    if (!mounted || _leaving) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _leaving) return;
+      if (_session?.role == SessionRole.student && _session?.student != null) {
+        _leaving = true;
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+      }
+    });
   }
 
   void _select(AdminTab tab) => setState(() => _tab = tab);
@@ -69,6 +77,7 @@ class _AdminShellState extends State<AdminShell> {
       await context.read<ActivityService>().log('logout');
     } catch (_) {}
     if (!mounted) return;
+    _session?.removeListener(_onSession);
     context.read<SessionProvider>().clear();
     await context.read<AuthService>().signOut();
     if (!mounted) return;
@@ -80,7 +89,7 @@ class _AdminShellState extends State<AdminShell> {
     final email = context.watch<AuthService>().currentUser?.email ?? '';
     final name = _displayName(email);
     return Scaffold(
-      appBar: AppBar(title: Text(_title)),
+      appBar: AppBar(title: AppScreenTitle(_title)),
       drawer: Drawer(
         child: SafeArea(
           child: Column(
@@ -95,6 +104,7 @@ class _AdminShellState extends State<AdminShell> {
                     _item(AdminTab.teachers, Icons.groups_rounded, 'Teachers'),
                     _item(AdminTab.broadcast, Icons.campaign_rounded, 'Broadcast'),
                     _item(AdminTab.activity, Icons.timeline_rounded, 'Activity Log'),
+                    _mappingItem(),
                   ],
                 ),
               ),
@@ -144,6 +154,32 @@ class _AdminShellState extends State<AdminShell> {
         AdminTab.broadcast => 'Broadcast',
         AdminTab.activity => 'Activity Log',
       };
+
+  Widget _mappingItem() {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(Icons.map_outlined, color: palette.muted),
+        title: Text(
+          'Mapping and Canvasing',
+          style: AppTextStyles.label.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: palette.ink,
+          ),
+        ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.pop(context);
+          Navigator.of(context).push(
+            fadeSlideRoute<void>(const MappingCanvasScreen()),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _item(AdminTab tab, IconData icon, String label) {
     final palette = context.palette;

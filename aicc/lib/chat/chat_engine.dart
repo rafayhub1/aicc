@@ -2,6 +2,7 @@ import '../core/academics.dart';
 import '../core/formatters.dart';
 import '../models/chat_message.dart';
 import '../models/faculty.dart';
+import '../models/place.dart';
 import '../models/student.dart';
 import '../models/student_document.dart';
 import '../services/api_service.dart';
@@ -17,24 +18,28 @@ class ChatAction {
 }
 
 class ChatReply {
-  const ChatReply(this.text, {this.action});
+  const ChatReply(this.text, {this.action, this.placeIds = const [], this.source});
 
   final String text;
   final ChatAction? action;
+  final List<String> placeIds;
+  final String? source;
 }
 
 class ChatEngine {
-  ChatEngine({required this.api, required this.facultyLoader});
+  ChatEngine({required this.api, required this.facultyLoader, required this.placesLoader});
 
   final ApiService api;
   final Future<List<Faculty>> Function() facultyLoader;
+  final Future<List<CampusPlace>> Function() placesLoader;
 
   Future<ChatReply> respond({
     required String text,
     required Student? student,
     List<ChatMessage> history = const [],
   }) async {
-    final intent = classifyIntent(text);
+    final places = await placesLoader();
+    final intent = classifyIntent(text, places: places);
     switch (intent.kind) {
       case ChatIntentKind.greeting:
         final name = student == null ? 'there' : firstName(student.name);
@@ -61,7 +66,21 @@ class ChatEngine {
         return _academicsReply(text, student);
       case ChatIntentKind.faculty:
         return _facultyReply(text);
+      case ChatIntentKind.navigation:
+        return _navigationReply(intent.placeId, places);
     }
+  }
+
+  ChatReply _navigationReply(String? placeId, List<CampusPlace> places) {
+    CampusPlace? place;
+    for (final item in places) {
+      if (item.id == placeId) place = item;
+    }
+    if (place == null) {
+      return const ChatReply('I could not find that place on the campus map.', source: 'router');
+    }
+    final where = place.placeLabel.isEmpty ? '' : ' It is at ${place.placeLabel}.';
+    return ChatReply('Here is ${place.name}.$where', placeIds: [place.id], source: 'router');
   }
 
   Future<ChatReply> _groundedReply(
@@ -76,7 +95,9 @@ class ChatEngine {
             (role: message.role, content: message.content),
       ];
       final answer = await api.askAssistant(text, turns);
-      if (answer.trim().isNotEmpty) return ChatReply(answer.trim());
+      if (answer.text.trim().isNotEmpty || answer.placeIds.isNotEmpty) {
+        return ChatReply(answer.text.trim(), placeIds: answer.placeIds, source: 'rag');
+      }
     } catch (_) {}
     if (intent.faqAnswer != null) return ChatReply(intent.faqAnswer!);
     final local = matchKnowledge(text.toLowerCase());

@@ -1,3 +1,5 @@
+"""Department list, cohort rules, and the course template for each department and semester."""
+
 from typing import TypedDict
 
 class Department(TypedDict):

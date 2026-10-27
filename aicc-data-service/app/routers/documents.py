@@ -1,3 +1,5 @@
+"""Student documents such as the fee challan and roll-number slip."""
+
 from fastapi import APIRouter, HTTPException, Request
 
 from app.firebase import get_db

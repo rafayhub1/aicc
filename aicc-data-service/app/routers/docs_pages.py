@@ -1,3 +1,5 @@
+"""Printable HTML pages for a student's fee challan and exam roll slip."""
+
 import hashlib
 from datetime import date
 

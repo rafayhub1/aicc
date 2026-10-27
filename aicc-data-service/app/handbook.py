@@ -12,9 +12,25 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.embeddings import semantic_scores
+from app.knowledge import place_id_for_text
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-HANDBOOK_PATH = PROJECT_ROOT / "docs" / "lgu_aicc_qa_knowledge_base (1).md"
+_HANDBOOK_NAME = "lgu_aicc_qa_knowledge_base (1).md"
+_HANDBOOK_CANDIDATES = (
+    PROJECT_ROOT / "docs" / _HANDBOOK_NAME,
+    PROJECT_ROOT.parent / "aicc" / "docs" / _HANDBOOK_NAME,
+)
+
+
+def handbook_file() -> Path:
+    """Path of the Q&A markdown. Prefers a copy inside this service, then the Flutter docs folder."""
+    for path in _HANDBOOK_CANDIDATES:
+        if path.is_file():
+            return path
+    return _HANDBOOK_CANDIDATES[0]
+
+
+HANDBOOK_PATH = handbook_file()
 
 _WORD = re.compile(r"[a-z0-9%]+|[\u0600-\u06ff]+", re.IGNORECASE)
 _URDU = re.compile(r"[\u0600-\u06ff]")
@@ -439,6 +455,9 @@ def _load_entries(path: str, stamp: int) -> tuple[dict, ...]:
                     "q_terms": frozenset(question_counts),
                     "tf": dict(term_counts),
                     "length": sum(term_counts.values()) or 1,
+                    "place_id": place_id_for_text(
+                        " ".join([block["q"], block["a"], block.get("uq", ""), block.get("rq", "")])
+                    ),
                 }
             )
         block = {}

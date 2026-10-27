@@ -1,0 +1,526 @@
+[
+  {
+    "id": "lgu",
+    "name": "LGU Main Campus",
+    "aliases": [
+      "lgu",
+      "lahore garrison university",
+      "campus"
+    ],
+    "category": "Gates",
+    "lat": 31.46977,
+    "lng": 74.406386,
+    "entrance": {
+      "lat": 31.46977,
+      "lng": 74.406386
+    },
+    "building": "",
+    "floor": "",
+    "hours": "",
+    "description": "Lahore Garrison University campus in DHA Phase 6.",
+    "photoUrl": "",
+    "nodeId": "central",
+    "isActive": true
+  },
+  {
+    "id": "main-gate",
+    "name": "Main Gate",
+    "aliases": [
+      "main gate",
+      "front gate"
+    ],
+    "category": "Gates",
+    "lat": 31.468981,
+    "lng": 74.405948,
+    "entrance": {
+      "lat": 31.468981,
+      "lng": 74.405948
+    },
+    "building": "",
+    "floor": "",
+    "hours": "06:00-22:00",
+    "description": "Primary student entrance on the south side.",
+    "photoUrl": "",
+    "nodeId": "gate",
+    "isActive": true
+  },
+  {
+    "id": "gate-3",
+    "name": "Gate 3",
+    "aliases": [
+      "gate 3",
+      "gate #3",
+      "gate no 3"
+    ],
+    "category": "Gates",
+    "lat": 31.470401,
+    "lng": 74.40615,
+    "entrance": {
+      "lat": 31.470401,
+      "lng": 74.40615
+    },
+    "building": "",
+    "floor": "",
+    "hours": "06:00-22:00",
+    "description": "North-east campus gate.",
+    "photoUrl": "",
+    "nodeId": "gate3",
+    "isActive": true
+  },
+  {
+    "id": "cafe",
+    "name": "LGU Cafe",
+    "aliases": [
+      "lgu cafe",
+      "cafe",
+      "canteen",
+      "cafeteria"
+    ],
+    "category": "Food",
+    "lat": 31.470176,
+    "lng": 74.406926,
+    "entrance": {
+      "lat": 31.470176,
+      "lng": 74.406926
+    },
+    "building": "",
+    "floor": "",
+    "hours": "08:00-20:00",
+    "description": "Snacks, lunch and tea.",
+    "photoUrl": "",
+    "nodeId": "cafe",
+    "isActive": true
+  },
+  {
+    "id": "block-a",
+    "name": "Faculty A",
+    "aliases": [
+      "block a",
+      "a block",
+      "faculty a"
+    ],
+    "category": "Academic",
+    "lat": 31.469996,
+    "lng": 74.406117,
+    "entrance": {
+      "lat": 31.469996,
+      "lng": 74.406117
+    },
+    "building": "Faculty A",
+    "floor": "Ground",
+    "hours": "08:00-16:00",
+    "description": "Faculty A wing beside the admin block.",
+    "photoUrl": "",
+    "nodeId": "blocka",
+    "isActive": true
+  },
+  {
+    "id": "block-b",
+    "name": "Faculty B",
+    "aliases": [
+      "block b",
+      "b block",
+      "faculty b"
+    ],
+    "category": "Academic",
+    "lat": 31.469815,
+    "lng": 74.406251,
+    "entrance": {
+      "lat": 31.469815,
+      "lng": 74.406251
+    },
+    "building": "Faculty B",
+    "floor": "Ground",
+    "hours": "08:00-16:00",
+    "description": "Faculty B classrooms.",
+    "photoUrl": "",
+    "nodeId": "blockb",
+    "isActive": true
+  },
+  {
+    "id": "block-c",
+    "name": "Faculty C",
+    "aliases": [
+      "block c",
+      "c block",
+      "faculty c"
+    ],
+    "category": "Academic",
+    "lat": 31.470131,
+    "lng": 74.406521,
+    "entrance": {
+      "lat": 31.470131,
+      "lng": 74.406521
+    },
+    "building": "Faculty C",
+    "floor": "Ground",
+    "hours": "08:00-16:00",
+    "description": "Faculty C beside the canteen.",
+    "photoUrl": "",
+    "nodeId": "blockc",
+    "isActive": true
+  },
+  {
+    "id": "block-d",
+    "name": "Canteen Wing",
+    "aliases": [
+      "block d",
+      "d block"
+    ],
+    "category": "Food",
+    "lat": 31.470176,
+    "lng": 74.406757,
+    "entrance": {
+      "lat": 31.470176,
+      "lng": 74.406757
+    },
+    "building": "Canteen",
+    "floor": "Ground",
+    "hours": "08:00-16:00",
+    "description": "Second canteen on the site plan.",
+    "photoUrl": "",
+    "nodeId": "blockd",
+    "isActive": true
+  },
+  {
+    "id": "block-e",
+    "name": "Faculty Wing",
+    "aliases": [
+      "block e",
+      "e block"
+    ],
+    "category": "Academic",
+    "lat": 31.470086,
+    "lng": 74.406184,
+    "entrance": {
+      "lat": 31.470086,
+      "lng": 74.406184
+    },
+    "building": "Faculty A",
+    "floor": "Ground",
+    "hours": "08:00-16:00",
+    "description": "Upper faculty wing.",
+    "photoUrl": "",
+    "nodeId": "blocke",
+    "isActive": true
+  },
+  {
+    "id": "fountain",
+    "name": "Circular Lawn",
+    "aliases": [
+      "fountain ground",
+      "fountain",
+      "circular lawn"
+    ],
+    "category": "Sports",
+    "lat": 31.469319,
+    "lng": 74.406353,
+    "entrance": {
+      "lat": 31.469319,
+      "lng": 74.406353
+    },
+    "building": "",
+    "floor": "",
+    "hours": "",
+    "description": "Round green lawn in front of the faculty blocks.",
+    "photoUrl": "",
+    "nodeId": "fountain",
+    "isActive": true
+  },
+  {
+    "id": "sports",
+    "name": "Play Ground",
+    "aliases": [
+      "play ground",
+      "playground",
+      "sports",
+      "sports complex"
+    ],
+    "category": "Sports",
+    "lat": 31.470582,
+    "lng": 74.406622,
+    "entrance": {
+      "lat": 31.470582,
+      "lng": 74.406622
+    },
+    "building": "Play Ground",
+    "floor": "Ground",
+    "hours": "08:00-18:00",
+    "description": "Football ground on the north side.",
+    "photoUrl": "",
+    "nodeId": "sports",
+    "isActive": true
+  },
+  {
+    "id": "library",
+    "name": "Central Library",
+    "aliases": [
+      "library",
+      "central library"
+    ],
+    "category": "Library",
+    "lat": 31.46995,
+    "lng": 74.40615,
+    "entrance": {
+      "lat": 31.46995,
+      "lng": 74.40615
+    },
+    "building": "Faculty A",
+    "floor": "Ground",
+    "hours": "08:30-20:00",
+    "description": "Library inside the faculty wing. Closed Saturday and Sunday.",
+    "photoUrl": "",
+    "nodeId": "lib",
+    "isActive": true
+  },
+  {
+    "id": "admin",
+    "name": "Admin Block",
+    "aliases": [
+      "admin",
+      "admin block",
+      "student desk"
+    ],
+    "category": "Admin",
+    "lat": 31.46959,
+    "lng": 74.405982,
+    "entrance": {
+      "lat": 31.46959,
+      "lng": 74.405982
+    },
+    "building": "Admin",
+    "floor": "Ground",
+    "hours": "08:30-16:00",
+    "description": "Admin block on the west side of the site.",
+    "photoUrl": "",
+    "nodeId": "admin",
+    "isActive": true
+  },
+  {
+    "id": "masjid",
+    "name": "Masjid",
+    "aliases": [
+      "masjid",
+      "mosque",
+      "prayer area",
+      "namaz"
+    ],
+    "category": "Prayer",
+    "lat": 31.469905,
+    "lng": 74.406589,
+    "entrance": {
+      "lat": 31.469905,
+      "lng": 74.406589
+    },
+    "building": "",
+    "floor": "Ground",
+    "hours": "05:00-22:00",
+    "description": "Prayer area on the green lawn.",
+    "photoUrl": "",
+    "nodeId": "masjid",
+    "isActive": true
+  },
+  {
+    "id": "labs",
+    "name": "Computer Labs",
+    "aliases": [
+      "computer lab",
+      "labs",
+      "lab"
+    ],
+    "category": "Labs",
+    "lat": 31.470041,
+    "lng": 74.40642,
+    "entrance": {
+      "lat": 31.470041,
+      "lng": 74.40642
+    },
+    "building": "Labs",
+    "floor": "Ground",
+    "hours": "08:30-16:00",
+    "description": "Junior and senior computer labs.",
+    "photoUrl": "",
+    "nodeId": "labs",
+    "isActive": true
+  },
+  {
+    "id": "washroom",
+    "name": "Central Washrooms",
+    "aliases": [
+      "washroom",
+      "washrooms",
+      "toilet",
+      "restroom"
+    ],
+    "category": "Washrooms",
+    "lat": 31.469635,
+    "lng": 74.406454,
+    "entrance": {
+      "lat": 31.469635,
+      "lng": 74.406454
+    },
+    "building": "",
+    "floor": "",
+    "hours": "",
+    "description": "Washrooms beside the central walk.",
+    "photoUrl": "",
+    "nodeId": "wash",
+    "isActive": true
+  },
+  {
+    "id": "parking",
+    "name": "Car Parking",
+    "aliases": [
+      "parking",
+      "car parking"
+    ],
+    "category": "Parking",
+    "lat": 31.470852,
+    "lng": 74.406825,
+    "entrance": {
+      "lat": 31.470852,
+      "lng": 74.406825
+    },
+    "building": "",
+    "floor": "",
+    "hours": "",
+    "description": "Car parking on the north side.",
+    "photoUrl": "",
+    "nodeId": "park",
+    "isActive": true
+  },
+  {
+    "id": "auditorium",
+    "name": "Auditorium",
+    "aliases": [
+      "auditorium",
+      "hall"
+    ],
+    "category": "Academic",
+    "lat": 31.470041,
+    "lng": 74.406285,
+    "entrance": {
+      "lat": 31.470041,
+      "lng": 74.406285
+    },
+    "building": "Faculty B",
+    "floor": "Ground",
+    "hours": "09:00-16:00",
+    "description": "Hall beside Faculty B.",
+    "photoUrl": "",
+    "nodeId": "auditorium",
+    "isActive": true
+  },
+  {
+    "id": "principal",
+    "name": "Principal Office",
+    "aliases": [
+      "principal",
+      "principal office"
+    ],
+    "category": "Admin",
+    "lat": 31.46959,
+    "lng": 74.405982,
+    "entrance": {
+      "lat": 31.46959,
+      "lng": 74.405982
+    },
+    "building": "Block A",
+    "floor": "Ground",
+    "hours": "09:00-15:00",
+    "description": "Principal office inside the admin block.",
+    "photoUrl": "",
+    "nodeId": "admin",
+    "isActive": true
+  },
+  {
+    "id": "stationery",
+    "name": "Stationery Shop",
+    "aliases": [
+      "stationery",
+      "photocopy"
+    ],
+    "category": "Admin",
+    "lat": 31.469815,
+    "lng": 74.405948,
+    "entrance": {
+      "lat": 31.469815,
+      "lng": 74.405948
+    },
+    "building": "Block A",
+    "floor": "Ground",
+    "hours": "08:30-16:00",
+    "description": "Stationery and photocopy.",
+    "photoUrl": "",
+    "nodeId": "stationery",
+    "isActive": true
+  },
+  {
+    "id": "motorcycle",
+    "name": "Motorcycle Parking",
+    "aliases": [
+      "motorcycle parking",
+      "bike parking",
+      "motorcycle"
+    ],
+    "category": "Parking",
+    "lat": 31.470717,
+    "lng": 74.406353,
+    "entrance": {
+      "lat": 31.470717,
+      "lng": 74.406353
+    },
+    "building": "",
+    "floor": "",
+    "hours": "",
+    "description": "Motorcycle shed on the east side.",
+    "photoUrl": "",
+    "nodeId": "moto",
+    "isActive": true
+  },
+  {
+    "id": "classroom-b104",
+    "name": "Classroom B-104",
+    "aliases": [
+      "b-104",
+      "b104",
+      "classroom b-104"
+    ],
+    "category": "Academic",
+    "lat": 31.46995,
+    "lng": 74.406319,
+    "entrance": {
+      "lat": 31.46995,
+      "lng": 74.406319
+    },
+    "building": "Faculty B",
+    "floor": "First",
+    "hours": "08:00-16:00",
+    "description": "First-floor classroom in Faculty B.",
+    "photoUrl": "",
+    "nodeId": "bb1",
+    "isActive": true
+  },
+  {
+    "id": "phy-lab",
+    "name": "Physics Lab",
+    "aliases": [
+      "physics lab",
+      "phy lab"
+    ],
+    "category": "Labs",
+    "lat": 31.470131,
+    "lng": 74.406521,
+    "entrance": {
+      "lat": 31.470131,
+      "lng": 74.406521
+    },
+    "building": "Block C",
+    "floor": "Ground",
+    "hours": "08:30-16:00",
+    "description": "Physics lab in Block C.",
+    "photoUrl": "",
+    "nodeId": "blockc",
+    "isActive": true
+  }
+]

@@ -1,3 +1,8 @@
+"""Environment settings for Firebase, the admin password, and Groq.
+
+Values come from aicc-data-service/.env or from the host's environment.
+"""
+
 import json
 from pathlib import Path
 
@@ -7,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
+    """Typed configuration. Missing secrets raise when a feature actually needs them."""
     google_service_account_json: str | None = None
     service_account_path: str | None = None
     mobile_service_account_json: str | None = None
@@ -23,6 +29,7 @@ class Settings(BaseSettings):
     )
 
     def get_service_account_dict(self) -> dict:
+        """Academic Firebase credentials from JSON text or a key file."""
         if self.google_service_account_json:
             return json.loads(self.google_service_account_json)
         if self.service_account_path:
@@ -35,6 +42,7 @@ class Settings(BaseSettings):
         )
 
     def get_mobile_service_account_dict(self) -> dict:
+        """Mobile Firebase credentials from JSON text or a key file."""
         if self.mobile_service_account_json:
             return json.loads(self.mobile_service_account_json)
         if self.mobile_service_account_path:

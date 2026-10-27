@@ -15,7 +15,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/brand_header.dart';
-import '../../widgets/document_webview.dart';
+import '../../widgets/unibot.dart';
 import '../../widgets/waking_banner.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -172,15 +172,6 @@ class _LoginScreenState extends State<LoginScreen> {
     controller.dispose();
   }
 
-  void _previewDocument(String title, String path) {
-    final base = context.read<ApiService>().baseUrl;
-    openDocument(
-      context,
-      title: title,
-      url: '$base/students/FA26-BSCS-001/$path',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,28 +241,80 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: _editServer,
               child: const Text('University server address'),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Temporary check for the document viewer. These open a sample student record.',
-              style: AppTextStyles.muted,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppButton(
-              label: 'Preview fee challan',
-              variant: AppButtonVariant.secondary,
-              icon: Icons.receipt_long_outlined,
-              onPressed: () => _previewDocument('Fee challan', 'fee-challan'),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Preview roll slip',
-              variant: AppButtonVariant.secondary,
-              icon: Icons.badge_outlined,
-              onPressed: () => _previewDocument('Roll number slip', 'roll-slip'),
-            ),
+            const SizedBox(height: AppSpacing.lg),
+            const _FlowingWelcome(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FlowingWelcome extends StatefulWidget {
+  const _FlowingWelcome();
+
+  @override
+  State<_FlowingWelcome> createState() => _FlowingWelcomeState();
+}
+
+class _FlowingWelcomeState extends State<_FlowingWelcome> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const UnibotAvatar(size: 120, interactive: true),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 32,
+          width: double.infinity,
+          child: ClipRect(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final t = _controller.value;
+                final double shift;
+                final double opacity;
+                if (t < 0.34) {
+                  final progress = Curves.easeOutCubic.transform(t / 0.34);
+                  shift = 64 * (1 - progress);
+                  opacity = progress;
+                } else if (t < 0.64) {
+                  shift = 0;
+                  opacity = 1;
+                } else {
+                  final progress = Curves.easeInCubic.transform((t - 0.64) / 0.36);
+                  shift = -64 * progress;
+                  opacity = 1 - progress;
+                }
+                return Opacity(
+                  opacity: opacity.clamp(0, 1),
+                  child: Transform.translate(offset: Offset(shift, 0), child: child),
+                );
+              },
+              child: Text(
+                'Welcome to LGU Unibot AI',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.title.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

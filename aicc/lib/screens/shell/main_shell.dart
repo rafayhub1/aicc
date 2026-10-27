@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +14,8 @@ import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/inbox_service.dart';
+import '../../services/push_service.dart';
+import '../../widgets/brand_header.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/unibot.dart';
 import '../chat/chat_screen.dart';
@@ -18,10 +23,9 @@ import '../history/chat_history_screen.dart';
 import '../home/home_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../settings/appearance_screen.dart';
-import '../navigation/indoor_navigation_screen.dart';
 import '../teachers/teachers_screen.dart';
 
-enum ShellTab { home, chat, history, notifications, teachers, map }
+enum ShellTab { home, chat, history, notifications, teachers }
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -35,6 +39,8 @@ class _MainShellState extends State<MainShell> {
   int _chatKey = 0;
   int _unread = 0;
   SessionProvider? _session;
+  bool _leaving = false;
+  final List<StreamSubscription<RemoteMessage>> _pushSubscriptions = [];
 
   @override
   void initState() {
@@ -43,6 +49,7 @@ class _MainShellState extends State<MainShell> {
       if (!mounted) return;
       _session = context.read<SessionProvider>();
       _session!.addListener(_onSession);
+      _listenForPush();
       final user = context.read<AuthService>().currentUser;
       if (user != null) _session!.bind(user);
     });
@@ -51,15 +58,55 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     _session?.removeListener(_onSession);
+    for (final subscription in _pushSubscriptions) {
+      subscription.cancel();
+    }
     super.dispose();
   }
 
+  Future<void> _listenForPush() async {
+    final push = context.read<PushService>();
+    _pushSubscriptions
+      ..add(push.foregroundMessages.listen(_onForegroundPush))
+      ..add(push.openedMessages.listen((_) => _select(ShellTab.notifications)));
+    final initial = await push.initialMessage();
+    if (initial != null && mounted) _select(ShellTab.notifications);
+  }
+
+  void _onForegroundPush(RemoteMessage message) {
+    if (!mounted) return;
+    _refreshUnread();
+    final notification = message.notification;
+    if (notification == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          notification.body ?? notification.title ?? 'New notification',
+        ),
+        action: SnackBarAction(
+          label: 'View',
+          onPressed: () => _select(ShellTab.notifications),
+        ),
+      ),
+    );
+  }
+
   void _onSession() {
-    if (_session?.isAdmin == true && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.admin, (route) => false);
-      return;
-    }
-    if (_session?.student != null) _refreshUnread();
+    if (!mounted || _leaving) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _leaving) return;
+      if (_session?.isAdmin == true) {
+        _leaving = true;
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil(AppRoutes.admin, (route) => false);
+        return;
+      }
+      final student = _session?.student;
+      if (student != null) {
+        _refreshUnread();
+        context.read<PushService>().register(student.id);
+      }
+    });
   }
 
   Future<void> _refreshUnread() async {
@@ -98,10 +145,14 @@ class _MainShellState extends State<MainShell> {
       await context.read<ActivityService>().log('logout');
     } catch (_) {}
     if (!mounted) return;
+    await context.read<PushService>().unregister();
+    if (!mounted) return;
+    _session?.removeListener(_onSession);
     context.read<SessionProvider>().clear();
     await context.read<AuthService>().signOut();
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   @override
@@ -109,7 +160,7 @@ class _MainShellState extends State<MainShell> {
     final session = context.watch<SessionProvider>();
     final student = session.student;
     return Scaffold(
-      appBar: AppBar(title: Text(_title)),
+      appBar: AppBar(title: AppScreenTitle(_title)),
       drawer: Drawer(
         child: SafeArea(
           child: Column(
@@ -124,33 +175,51 @@ class _MainShellState extends State<MainShell> {
                   children: [
                     _item(ShellTab.home, Icons.home_rounded, 'Home'),
                     _item(ShellTab.chat, Icons.forum_rounded, 'Chat'),
-                    _item(ShellTab.history, Icons.history_rounded, 'Chat History'),
+                    _item(
+                      ShellTab.history,
+                      Icons.history_rounded,
+                      'Chat History',
+                    ),
                     _item(
                       ShellTab.notifications,
                       Icons.notifications_rounded,
                       'Notifications',
                       badge: _unread,
                     ),
-                    _item(ShellTab.teachers, Icons.groups_rounded, 'Teacher Tracking'),
-                    _item(ShellTab.map, Icons.map_rounded, 'Indoor Navigation'),
+                    _item(
+                      ShellTab.teachers,
+                      Icons.groups_rounded,
+                      'Teacher Tracking',
+                    ),
+                    _navigationModeTile(),
                   ],
                 ),
               ),
               ListTile(
-                leading: Icon(Icons.palette_outlined, color: Theme.of(context).colorScheme.primary),
+                leading: Icon(
+                  Icons.palette_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 title: const Text('Appearance'),
                 onTap: () {
                   HapticFeedback.selectionClick();
                   Navigator.pop(context);
-                  Navigator.of(context).push(fadeSlideRoute<void>(const AppearanceScreen()));
+                  Navigator.of(context)
+                      .push(fadeSlideRoute<void>(const AppearanceScreen()));
                 },
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.logout_rounded, color: AppColors.danger),
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.danger,
+                ),
                 title: const Text(
                   'Log Out',
-                  style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -168,17 +237,22 @@ class _MainShellState extends State<MainShell> {
           children: [
             switch (_tab) {
               ShellTab.home => HomeScreen(
-                  onNewChat: () => _select(ShellTab.chat),
-                  onTeachers: () => _select(ShellTab.teachers),
-                  onNotifications: () => _select(ShellTab.notifications),
-                ),
-              ShellTab.chat => ChatScreen(key: ValueKey(_chatKey), embedded: true),
+                onNewChat: () => _select(ShellTab.chat),
+                onTeachers: () => _select(ShellTab.teachers),
+                onNotifications: () => _select(ShellTab.notifications),
+              ),
+              ShellTab.chat => ChatScreen(
+                key: ValueKey(_chatKey),
+                embedded: true,
+              ),
               ShellTab.history => const ChatHistoryScreen(),
-              ShellTab.notifications => NotificationsScreen(onChanged: _refreshUnread),
+              ShellTab.notifications => NotificationsScreen(
+                onChanged: _refreshUnread,
+              ),
               ShellTab.teachers => const TeachersScreen(),
-              ShellTab.map => const IndoorNavigationScreen(),
             },
-            if (_tab != ShellTab.chat) UnibotShortcut(onOpen: () => _select(ShellTab.chat)),
+            if (_tab != ShellTab.chat)
+              UnibotShortcut(onOpen: () => _select(ShellTab.chat)),
           ],
         ),
       ),
@@ -186,13 +260,48 @@ class _MainShellState extends State<MainShell> {
   }
 
   String get _title => switch (_tab) {
-        ShellTab.home => 'Home',
-        ShellTab.chat => 'New Chat',
-        ShellTab.history => 'Chat History',
-        ShellTab.notifications => 'Notifications',
-        ShellTab.teachers => 'Teacher Tracking',
-        ShellTab.map => 'Indoor Navigation',
-      };
+    ShellTab.home => 'Home',
+    ShellTab.chat => 'New Chat',
+    ShellTab.history => 'Chat History',
+    ShellTab.notifications => 'Notifications',
+    ShellTab.teachers => 'Teacher Tracking',
+  };
+
+  Widget _navigationModeTile() {
+    return _drawerRouteTile(
+      icon: Icons.alt_route_rounded,
+      label: 'Navigation Mode',
+      route: AppRoutes.navigationMode,
+    );
+  }
+
+  Widget _drawerRouteTile({
+    required IconData icon,
+    required String label,
+    required String route,
+  }) {
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(icon, color: palette.muted),
+        title: Text(
+          label,
+          style: AppTextStyles.label.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: palette.ink,
+          ),
+        ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.pop(context);
+          Navigator.of(context).pushNamed(route);
+        },
+      ),
+    );
+  }
 
   Widget _item(
     ShellTab tab,
@@ -206,8 +315,8 @@ class _MainShellState extends State<MainShell> {
     final color = comingSoon
         ? palette.muted
         : selected
-            ? Theme.of(context).colorScheme.primary
-            : palette.ink;
+        ? Theme.of(context).colorScheme.primary
+        : palette.ink;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: ListTile(
@@ -218,7 +327,9 @@ class _MainShellState extends State<MainShell> {
           icon,
           color: comingSoon
               ? palette.muted
-              : (selected ? Theme.of(context).colorScheme.primary : palette.muted),
+              : (selected
+                    ? Theme.of(context).colorScheme.primary
+                    : palette.muted),
         ),
         title: Text(
           label,
@@ -237,22 +348,28 @@ class _MainShellState extends State<MainShell> {
                 ),
                 child: Text(
                   'Coming soon',
-                  style: AppTextStyles.label.copyWith(fontSize: 12, color: palette.muted),
+                  style: AppTextStyles.label.copyWith(
+                    fontSize: 12,
+                    color: palette.muted,
+                  ),
                 ),
               )
             : badge > 0
-                ? Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                    ),
-                    child: Text(
-                      badge > 9 ? '9+' : '$badge',
-                      style: AppTextStyles.label.copyWith(color: Colors.white, fontSize: 12),
-                    ),
-                  )
-                : null,
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.danger,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  badge > 9 ? '9+' : '$badge',
+                  style: AppTextStyles.label.copyWith(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            : null,
         onTap: () {
           HapticFeedback.selectionClick();
           Navigator.pop(context);
@@ -293,12 +410,20 @@ class _DrawerHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          Text(name, style: AppTextStyles.title.copyWith(color: Colors.white, fontSize: 18)),
+          Text(
+            name,
+            style: AppTextStyles.title.copyWith(
+              color: Colors.white,
+              fontSize: 18,
+            ),
+          ),
           if (registration.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               registration,
-              style: AppTextStyles.muted.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+              style: AppTextStyles.muted.copyWith(
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
             ),
           ],
         ],

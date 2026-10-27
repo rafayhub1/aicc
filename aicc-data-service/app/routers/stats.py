@@ -1,3 +1,5 @@
+"""Campus-wide counts and CGPA bands for the admin dashboard. GET /api/stats."""
+
 import time
 
 from fastapi import APIRouter

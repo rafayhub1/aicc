@@ -10,6 +10,8 @@ class ChatMessage {
     required this.createdAt,
     this.actionLabel,
     this.actionUrl,
+    this.placeIds = const [],
+    this.source,
   });
 
   final String id;
@@ -20,6 +22,8 @@ class ChatMessage {
   final DateTime createdAt;
   final String? actionLabel;
   final String? actionUrl;
+  final List<String> placeIds;
+  final String? source;
 
   bool get isUser => role == 'user';
 
@@ -32,6 +36,8 @@ class ChatMessage {
       'created_at': Timestamp.fromDate(createdAt),
       if (actionLabel != null) 'action_label': actionLabel,
       if (actionUrl != null) 'action_url': actionUrl,
+      if (placeIds.isNotEmpty) 'place_ids': placeIds,
+      if (source != null) 'answered_by': source,
     };
   }
 
@@ -49,6 +55,10 @@ class ChatMessage {
           : DateTime.tryParse('$created') ?? DateTime.now(),
       actionLabel: data['action_label'] == null ? null : '${data['action_label']}',
       actionUrl: data['action_url'] == null ? null : '${data['action_url']}',
+      placeIds: data['place_ids'] is List
+          ? [for (final id in data['place_ids'] as List) '$id']
+          : const [],
+      source: data['answered_by'] == null ? null : '${data['answered_by']}',
     );
   }
 }

@@ -1,3 +1,5 @@
+import '../models/place.dart';
+import '../services/place_search.dart';
 import 'knowledge_base.dart';
 
 enum ChatIntentKind {
@@ -7,25 +9,29 @@ enum ChatIntentKind {
   rollSlip,
   academics,
   faculty,
+  navigation,
   unknown,
 }
 
 class ClassifiedIntent {
-  const ClassifiedIntent(this.kind, {this.faqAnswer});
+  const ClassifiedIntent(this.kind, {this.faqAnswer, this.placeId});
 
   final ChatIntentKind kind;
   final String? faqAnswer;
+  final String? placeId;
 }
 
 const suggestedQuestions = [
   'Show my fee challan',
   'Open my roll number slip',
   'What is my attendance?',
+  'Where is the library?',
+  'Navigate to the cafe',
   'Where is Dr. Hamza Qureshi?',
   'What is the attendance policy?',
 ];
 
-ClassifiedIntent classifyIntent(String raw) {
+ClassifiedIntent classifyIntent(String raw, {List<CampusPlace> places = const []}) {
   final text = raw.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   if (text.isEmpty) {
     return const ClassifiedIntent(ChatIntentKind.unknown);
@@ -53,6 +59,11 @@ ClassifiedIntent classifyIntent(String raw) {
 
   if (_isAcademics(text) && !_isPolicy(text)) {
     return const ClassifiedIntent(ChatIntentKind.academics);
+  }
+
+  final place = matchPlace(text, places);
+  if (place != null) {
+    return ClassifiedIntent(ChatIntentKind.navigation, placeId: place.id);
   }
 
   final faq = matchKnowledge(text);
@@ -125,7 +136,6 @@ bool _isFaculty(String text) {
     'madam',
     'dr ',
     'dr.',
-    'where is',
     'who teaches',
     'consultation',
   ]);

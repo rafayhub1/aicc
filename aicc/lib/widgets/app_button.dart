@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/theme.dart';
+import 'brand_loading.dart';
 
 enum AppButtonVariant { primary, secondary, danger }
 
@@ -44,14 +45,11 @@ class AppButton extends StatelessWidget {
     final child = AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
       child: loading
-          ? SizedBox(
+          ? BrandLoadingIndicator(
               key: const ValueKey('loading'),
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.4,
-                color: foreground,
-              ),
+              size: 26,
+              light: variant != AppButtonVariant.secondary,
+              showOrbit: false,
             )
           : Row(
               key: const ValueKey('label'),

@@ -1,3 +1,8 @@
+"""Admin-only actions: bootstrap the admin user, reset passwords, delete accounts, broadcast notices, and list activity.
+
+Calls expect an Authorization header checked by require_admin.
+"""
+
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -5,6 +10,7 @@ from firebase_admin import auth
 from google.cloud import firestore
 from pydantic import BaseModel, Field
 
+from app import push
 from app.academics import DEPARTMENT_CODES, SECTIONS
 from app.config import settings
 from app.firebase import get_db, get_mobile_app, get_mobile_db
@@ -224,6 +230,7 @@ def broadcast_notification(
                 "timestamp": firestore.SERVER_TIMESTAMP,
             }
         )
+        push.notify_student(student, body.type, body.message)
         count += 1
     return {"count": count}
 

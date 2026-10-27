@@ -1,3 +1,7 @@
+/// Root widget. Wires theme, session, API, and the route table, then shows
+/// splash, sign-in, the student shell, admin, or a navigation screen.
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
 import 'core/transitions.dart';
+import 'features/navigation_mode/presentation/navigation_mode_screen.dart';
 import 'providers/session_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_shell.dart';
@@ -18,6 +23,8 @@ import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'services/chat_repository.dart';
 import 'services/faculty_repository.dart';
+import 'services/places_repository.dart';
+import 'services/push_service.dart';
 
 class AiccApp extends StatelessWidget {
   const AiccApp({
@@ -43,9 +50,16 @@ class AiccApp extends StatelessWidget {
             },
           ),
         ),
+        Provider(
+          create: (context) => PushService(api: context.read<ApiService>()),
+        ),
         Provider(create: (_) => ActivityService()),
         Provider(create: (_) => ChatRepository()),
         Provider(create: (_) => FacultyRepository()),
+        Provider(
+          create: (context) =>
+              PlacesRepository(preferences: context.read<SharedPreferences>()),
+        ),
         ChangeNotifierProvider(
           create: (context) => SessionProvider(api: context.read<ApiService>()),
         ),
@@ -74,11 +88,13 @@ class AiccApp extends StatelessWidget {
     final page = switch (settings.name) {
       AppRoutes.setup => const FirebaseSetupScreen(),
       AppRoutes.login => LoginScreen(
-          onSignupTap: () => appNavigatorKey.currentState?.pushNamed(AppRoutes.signup),
-        ),
+        onSignupTap: () =>
+            appNavigatorKey.currentState?.pushNamed(AppRoutes.signup),
+      ),
       AppRoutes.signup => SignupScreen(onLoginTap: _openLogin),
       AppRoutes.home => const MainShell(),
       AppRoutes.admin => const AdminShell(),
+      AppRoutes.navigationMode => const NavigationModeScreen(),
       _ => SplashScreen(firebaseReady: firebaseReady),
     };
     return fadeSlideRoute(page, settings: settings);

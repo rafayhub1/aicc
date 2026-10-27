@@ -52,5 +52,15 @@ service cloud.firestore {
       allow create: if signedIn();
       allow update, delete: if isAdmin();
     }
+
+    match /places/{placeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /indoor_maps/{areaId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
   }
 }

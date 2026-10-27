@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../core/routes.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_logo.dart';
+import '../widgets/brand_loading.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.firebaseReady});
@@ -14,12 +16,18 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
+class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+  late final AnimationController _intro = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: const Duration(milliseconds: 1100),
   )..forward();
+
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  )..repeat(reverse: true);
+
+  String _status = 'Starting up…';
 
   @override
   void initState() {
@@ -29,8 +37,12 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _openNext() async {
     final auth = context.read<AuthService>();
-    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
+    setState(() => _status = 'Connecting to campus services…');
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() => _status = 'Checking your session…');
     final restored = await auth.authState().first.timeout(
       const Duration(seconds: 4),
       onTimeout: () => auth.currentUser,
@@ -50,65 +62,59 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _intro.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    final fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    final scale = CurvedAnimation(parent: _intro, curve: Curves.easeOutBack);
+    final fade = CurvedAnimation(parent: _intro, curve: Curves.easeOut);
+    final glow = Tween<double>(begin: 0.92, end: 1.06).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+    );
+
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Center(
-        child: FadeTransition(
-          opacity: fade,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.86, end: 1).animate(scale),
+      body: SplashBackdrop(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'AICC',
-                    style: AppTextStyles.title.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
+                const Spacer(flex: 3),
+                FadeTransition(
+                  opacity: fade,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.88, end: 1).animate(scale),
+                    child: AnimatedBuilder(
+                      animation: glow,
+                      builder: (context, child) {
+                        return Transform.scale(scale: glow.value, child: child);
+                      },
+                      child: const AppLogoHero(logoSize: 112),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'AICC',
-                  style: AppTextStyles.display.copyWith(
-                    color: Colors.white,
-                    fontSize: 28,
-                    letterSpacing: 1.2,
+                const Spacer(flex: 2),
+                FadeTransition(
+                  opacity: fade,
+                  child: Column(
+                    children: [
+                      const BrandLoadingIndicator(size: 48, light: true),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        _status,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.muted.copyWith(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Your campus companion',
-                  style: AppTextStyles.muted.copyWith(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontSize: 15,
-                  ),
-                ),
+                const SizedBox(height: AppSpacing.xl),
               ],
             ),
           ),

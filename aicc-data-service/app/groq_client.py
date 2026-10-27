@@ -1,3 +1,5 @@
+"""Calls Groq for handbook answers and speech-to-text. The model may only use the handbook text this module sends."""
+
 import json
 import re
 import uuid

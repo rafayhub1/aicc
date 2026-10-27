@@ -1,0 +1,24 @@
+id,name,aliases,category,lat,lng,building,floor,hours,description,node_id
+lgu,LGU Main Campus,lgu;lahore garrison university;campus,Gates,31.46977,74.406386,,,,Lahore Garrison University campus in DHA Phase 6.,central
+main-gate,Main Gate,main gate;front gate,Gates,31.468981,74.405948,,,06:00-22:00,Primary student entrance on the south side.,gate
+gate-3,Gate 3,gate 3;gate #3;gate no 3,Gates,31.470401,74.40615,,,06:00-22:00,North-east campus gate.,gate3
+cafe,LGU Cafe,lgu cafe;cafe;canteen;cafeteria,Food,31.470176,74.406926,,,08:00-20:00,"Snacks, lunch and tea.",cafe
+block-a,Faculty A,block a;a block;faculty a,Academic,31.469996,74.406117,Faculty A,Ground,08:00-16:00,Faculty A wing beside the admin block.,blocka
+block-b,Faculty B,block b;b block;faculty b,Academic,31.469815,74.406251,Faculty B,Ground,08:00-16:00,Faculty B classrooms.,blockb
+block-c,Faculty C,block c;c block;faculty c,Academic,31.470131,74.406521,Faculty C,Ground,08:00-16:00,Faculty C beside the canteen.,blockc
+block-d,Canteen Wing,block d;d block,Food,31.470176,74.406757,Canteen,Ground,08:00-16:00,Second canteen on the site plan.,blockd
+block-e,Faculty Wing,block e;e block,Academic,31.470086,74.406184,Faculty A,Ground,08:00-16:00,Upper faculty wing.,blocke
+fountain,Circular Lawn,fountain ground;fountain;circular lawn,Sports,31.469319,74.406353,,,,Round green lawn in front of the faculty blocks.,fountain
+sports,Play Ground,play ground;playground;sports;sports complex,Sports,31.470582,74.406622,Play Ground,Ground,08:00-18:00,Football ground on the north side.,sports
+library,Central Library,library;central library,Library,31.46995,74.40615,Faculty A,Ground,08:30-20:00,Library inside the faculty wing. Closed Saturday and Sunday.,lib
+admin,Admin Block,admin;admin block;student desk,Admin,31.46959,74.405982,Admin,Ground,08:30-16:00,Admin block on the west side of the site.,admin
+masjid,Masjid,masjid;mosque;prayer area;namaz,Prayer,31.469905,74.406589,,Ground,05:00-22:00,Prayer area on the green lawn.,masjid
+labs,Computer Labs,computer lab;labs;lab,Labs,31.470041,74.40642,Labs,Ground,08:30-16:00,Junior and senior computer labs.,labs
+washroom,Central Washrooms,washroom;washrooms;toilet;restroom,Washrooms,31.469635,74.406454,,,,Washrooms beside the central walk.,wash
+parking,Car Parking,parking;car parking,Parking,31.470852,74.406825,,,,Car parking on the north side.,park
+auditorium,Auditorium,auditorium;hall,Academic,31.470041,74.406285,Faculty B,Ground,09:00-16:00,Hall beside Faculty B.,auditorium
+principal,Principal Office,principal;principal office,Admin,31.46959,74.405982,Block A,Ground,09:00-15:00,Principal office inside the admin block.,admin
+stationery,Stationery Shop,stationery;photocopy,Admin,31.469815,74.405948,Block A,Ground,08:30-16:00,Stationery and photocopy.,stationery
+motorcycle,Motorcycle Parking,motorcycle parking;bike parking;motorcycle,Parking,31.470717,74.406353,,,,Motorcycle shed on the east side.,moto
+classroom-b104,Classroom B-104,b-104;b104;classroom b-104,Academic,31.46995,74.406319,Faculty B,First,08:00-16:00,First-floor classroom in Faculty B.,bb1
+phy-lab,Physics Lab,physics lab;phy lab,Labs,31.470131,74.406521,Block C,Ground,08:30-16:00,Physics lab in Block C.,blockc

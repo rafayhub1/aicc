@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,8 +18,10 @@ import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/chat_repository.dart';
 import '../../services/faculty_repository.dart';
+import '../../services/places_repository.dart';
 import '../../services/voice_service.dart';
 import '../../widgets/document_webview.dart';
+import '../../widgets/place_card.dart';
 import '../../widgets/unibot.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/waking_banner.dart';
@@ -65,6 +68,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _engine = ChatEngine(
       api: context.read<ApiService>(),
       facultyLoader: () => context.read<FacultyRepository>().fetchAll(),
+      placesLoader: () async {
+        final places = context.read<PlacesRepository>();
+        await places.ensureLoaded();
+        return places.places;
+      },
     );
     _sessionId = widget.sessionId;
     _speakerOn = context.read<SharedPreferences>().getBool(kSpeakerEnabledPrefsKey) ?? true;
@@ -113,7 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _activity.log('chat_completed').then((_) {}, onError: (_, _) {});
     }
     _unibotTimer?.cancel();
-    _voice.dispose();
+    unawaited(_voice.dispose());
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -121,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
+      if (!mounted || !_scroll.hasClients) return;
       final target = widget.readOnly ? _scroll.position.maxScrollExtent : 0.0;
       _scroll.animateTo(
         target,
@@ -172,6 +180,8 @@ class _ChatScreenState extends State<ChatScreen> {
         createdAt: DateTime.now(),
         actionLabel: reply.action?.label,
         actionUrl: reply.action?.url,
+        placeIds: reply.placeIds,
+        source: reply.source,
       );
       setState(() => _messages.add(assistant));
       _scrollToEnd();
@@ -240,12 +250,15 @@ class _ChatScreenState extends State<ChatScreen> {
         message: _error!,
       );
     }
-    if (widget.readOnly) return _messageList();
+    if (widget.readOnly || _messages.isEmpty) {
+      return widget.readOnly ? _messageList() : _voiceHub();
+    }
 
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Column(
       children: [
-        Expanded(flex: _messages.isEmpty ? 1 : 4, child: _voiceHub()),
-        if (_messages.isNotEmpty) Expanded(flex: 5, child: _messageList()),
+        if (!keyboardOpen) SizedBox(height: 168, child: _voiceHub()),
+        Expanded(child: _messageList()),
       ],
     );
   }
@@ -254,75 +267,82 @@ class _ChatScreenState extends State<ChatScreen> {
     final busy = _replying || _transcribing;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxHeight < 190;
-        final size = compact ? 88.0 : 112.0;
+        final maxHeight = constraints.maxHeight;
+        if (!maxHeight.isFinite || maxHeight < 64) return const SizedBox.shrink();
+        final compact = maxHeight < 200;
+        final showLabel = maxHeight >= 132;
+        final size = compact ? 76.0 : 112.0;
         final showUnibot = _listening || _transcribing || _unibotVisiting;
         return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: size + 36,
-                height: size + 28,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Material(
-                      color: _listening ? AppColors.danger : AppColors.primary,
-                      elevation: 8,
-                      shadowColor: AppColors.primary.withValues(alpha: 0.35),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: busy ? null : _toggleMic,
-                        child: SizedBox(
-                          width: size,
-                          height: size,
-                          child: Icon(
-                            _transcribing
-                                ? Icons.hourglass_top_rounded
-                                : _listening
-                                    ? Icons.stop_rounded
-                                    : Icons.mic_rounded,
-                            color: Colors.white,
-                            size: compact ? 36 : 48,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: size + 44,
+                  height: size + 36,
+                  child: Stack(
+                    clipBehavior: Clip.hardEdge,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Material(
+                        color: _listening ? AppColors.danger : AppColors.primary,
+                        elevation: 0,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: busy ? null : _toggleMic,
+                          child: SizedBox(
+                            width: size,
+                            height: size,
+                            child: Icon(
+                              _transcribing
+                                  ? Icons.hourglass_top_rounded
+                                  : _listening
+                                      ? Icons.stop_rounded
+                                      : Icons.mic_rounded,
+                              color: Colors.white,
+                              size: compact ? 32 : 48,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: AnimatedScale(
-                          scale: showUnibot ? 1 : 0,
-                          duration: const Duration(milliseconds: 280),
-                          curve: Curves.easeOutBack,
-                          child: UnibotAvatar(
-                            size: compact ? 48 : 64,
-                            mood: _listening || _transcribing ? UnibotMood.thumbsUp : UnibotMood.wink,
+                      Positioned(
+                        top: 4,
+                        right: 2,
+                        child: IgnorePointer(
+                          child: AnimatedScale(
+                            scale: showUnibot ? 1 : 0,
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutBack,
+                            child: UnibotAvatar(
+                              size: compact ? 44 : 64,
+                              mood: _listening || _transcribing ? UnibotMood.thumbsUp : UnibotMood.wink,
+                            ),
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                if (showLabel) ...[
+                  SizedBox(height: compact ? 8 : 12),
+                  Text(
+                    _transcribing
+                        ? 'Turning speech into text…'
+                        : _listening
+                            ? 'Listening… tap to send'
+                            : 'Tap to talk',
+                    style: TextStyle(
+                      color: context.palette.muted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: compact ? 13 : null,
                     ),
-                  ],
-                ),
-              ),
-              SizedBox(height: compact ? 8 : 16),
-              Text(
-                _transcribing
-                    ? 'Turning speech into text…'
-                    : _listening
-                        ? 'Listening… tap to send'
-                        : 'Tap to talk',
-                style: TextStyle(
-                  color: context.palette.muted,
-                  fontWeight: FontWeight.w600,
-                  fontSize: compact ? 13 : null,
-                ),
-              ),
-            ],
+                  ),
+                ],
+              ],
+            ),
           ),
         );
       },
@@ -331,19 +351,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _messageList() {
     final newestFirst = !widget.readOnly;
-    return ListView(
-      controller: _scroll,
-      reverse: newestFirst,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      children: [
-        if (newestFirst) ...[
-          if (_replying) const _TypingIndicator(),
-          WakingBanner(active: _replying),
-          for (final message in _messages.reversed) _Bubble(message: message),
-        ] else ...[
-          for (final message in _messages) _Bubble(message: message),
+    return NotificationListener<OverscrollIndicatorNotification>(
+      onNotification: (notification) {
+        notification.disallowIndicator();
+        return true;
+      },
+      child: ListView(
+        controller: _scroll,
+        reverse: newestFirst,
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        children: [
+          if (newestFirst) ...[
+            if (_replying) const _TypingIndicator(),
+            WakingBanner(active: _replying),
+            for (final message in _messages.reversed) _Bubble(message: message),
+          ] else ...[
+            for (final message in _messages) _Bubble(message: message),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -528,6 +555,15 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!mine)
+              for (final id in message.placeIds)
+                Builder(
+                  builder: (context) {
+                    final place = context.read<PlacesRepository>().byId(id);
+                    if (place == null) return const SizedBox.shrink();
+                    return PlaceCard(place: place);
+                  },
+                ),
             Text(
               message.content,
               style: TextStyle(
@@ -535,6 +571,14 @@ class _Bubble extends StatelessWidget {
                 height: 1.35,
               ),
             ),
+            if (!mine && kDebugMode && message.source != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'answered by: ${message.source}',
+                  style: TextStyle(fontSize: 10, color: mine ? Colors.white70 : context.palette.muted),
+                ),
+              ),
             if (!mine && message.actionUrl != null) ...[
               const SizedBox(height: 10),
               Material(

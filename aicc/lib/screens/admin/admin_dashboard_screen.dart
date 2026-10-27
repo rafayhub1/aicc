@@ -10,7 +10,9 @@ import '../../services/faculty_repository.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/skeleton.dart';
+import '../../core/transitions.dart';
 import 'admin_shell.dart';
+import 'mapping_canvas_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.onOpen});
@@ -146,6 +148,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _Action(icon: Icons.groups_rounded, label: 'Teachers', onTap: () => widget.onOpen(AdminTab.teachers)),
               _Action(icon: Icons.campaign_rounded, label: 'Broadcast', onTap: () => widget.onOpen(AdminTab.broadcast)),
               _Action(icon: Icons.timeline_rounded, label: 'Activity', onTap: () => widget.onOpen(AdminTab.activity)),
+              _Action(
+                icon: Icons.map_outlined,
+                label: 'Mapping',
+                onTap: () => Navigator.of(context).push(
+                  fadeSlideRoute<void>(const MappingCanvasScreen()),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),

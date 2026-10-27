@@ -1,3 +1,5 @@
+"""Published fee lines used to draw a challan. Totals are checked when this module loads."""
+
 from typing import TypedDict
 
 

@@ -19,3 +19,31 @@ POLICIES = (
 
 def knowledge_text() -> str:
     return "\n".join(f"- {policy}" for policy in POLICIES)
+
+
+def place_id_for_text(text: str) -> str:
+    """Optional place tag stored on a knowledge chunk. Empty when none applies."""
+    lowered = text.lower()
+    if "cafe" in lowered or "canteen" in lowered:
+        return "cafe"
+    if "fountain" in lowered:
+        return "fountain"
+    if "library" in lowered:
+        return "library"
+    return ""
+
+
+def linked_place_ids(message: str, entries: list[dict]) -> list[str]:
+    """Place cards that belong with a RAG answer. The model never chooses these."""
+    found: list[str] = []
+
+    def add(place_id: str) -> None:
+        if place_id and place_id not in found:
+            found.append(place_id)
+
+    for entry in entries:
+        add(str(entry.get("place_id") or ""))
+    text = message.lower()
+    if any(word in text for word in ("eat", "lunch", "hungry", "canteen", "cafe", "food")):
+        add("cafe")
+    return found

@@ -1,3 +1,5 @@
+"""Courses stored under one academic student. Paths start with /api/students/{id}/courses."""
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app.firebase import get_db

@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>AICC uses your location to show where you are on campus and to give walking directions.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>AICC uses the camera to scan a you-are-here code inside a building.</string>
 </dict>
 </plist>

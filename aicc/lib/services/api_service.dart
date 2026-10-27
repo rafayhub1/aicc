@@ -1,3 +1,9 @@
+/// HTTP client for the AICC data service.
+///
+/// Academic calls use `/api/students` and related paths. Campus places, chat,
+/// and admin actions use the same base URL stored in preferences.
+library;
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -14,6 +20,13 @@ import '../models/course.dart';
 import '../models/student.dart';
 import '../models/student_document.dart';
 import 'api_exception.dart';
+
+class AssistantAnswer {
+  const AssistantAnswer(this.text, this.placeIds);
+
+  final String text;
+  final List<String> placeIds;
+}
 
 class ApiService {
   ApiService(
@@ -75,7 +88,7 @@ class ApiService {
     return _asList(body).map(StudentDocument.fromJson).toList();
   }
 
-  Future<String> askAssistant(
+  Future<AssistantAnswer> askAssistant(
     String message,
     List<({String role, String content})> history,
   ) async {
@@ -102,7 +115,14 @@ class ApiService {
       throw ApiUnknown('The campus assistant could not answer right now.');
     }
     final body = response.body.isEmpty ? null : jsonDecode(response.body);
-    return '${_asMap(body)['text'] ?? ''}'.trim();
+    final map = _asMap(body);
+    final rawIds = map['place_ids'];
+    return AssistantAnswer(
+      '${map['text'] ?? ''}'.trim(),
+      rawIds is List
+          ? [for (final id in rawIds) '$id'.trim()].where((id) => id.isNotEmpty).toList()
+          : const [],
+    );
   }
 
   Future<String> transcribeSpeech(String path) async {
@@ -126,6 +146,24 @@ class ApiService {
         headers: const {'Content-Type': 'application/json'},
         body: jsonEncode({'read': true}),
       ),
+    );
+  }
+
+  Future<void> registerPushToken(String studentId, String token) async {
+    await _json(
+      'POST',
+      '/api/students/${_id(studentId)}/notifications/push-token',
+      jsonBody: {'token': token},
+      admin: true,
+    );
+  }
+
+  Future<void> unregisterPushToken(String studentId, String token) async {
+    await _json(
+      'DELETE',
+      '/api/students/${_id(studentId)}/notifications/push-token',
+      jsonBody: {'token': token},
+      admin: true,
     );
   }
 
@@ -271,6 +309,19 @@ class ApiService {
     return int.tryParse('$count') ?? 0;
   }
 
+  Future<void> savePlace(Map<String, dynamic> place, {required bool create}) async {
+    final id = '${place['id'] ?? ''}'.trim();
+    if (create) {
+      await _json('POST', '/api/admin/places', jsonBody: place, admin: true);
+      return;
+    }
+    await _json('PUT', '/api/admin/places/${_id(id)}', jsonBody: place, admin: true);
+  }
+
+  Future<void> deletePlace(String id) async {
+    await _json('DELETE', '/api/admin/places/${_id(id)}', admin: true);
+  }
+
   Future<List<AdminActivity>> listActivity() async {
     final body = await _json('GET', '/api/admin/activity?limit=100', admin: true);
     return _asList(body).map(AdminActivity.fromJson).toList();
@@ -306,7 +357,7 @@ class ApiService {
         'POST' => _client.post(uri, headers: headers, body: encoded),
         'PUT' => _client.put(uri, headers: headers, body: encoded),
         'PATCH' => _client.patch(uri, headers: headers, body: encoded),
-        'DELETE' => _client.delete(uri, headers: headers),
+        'DELETE' => _client.delete(uri, headers: headers, body: encoded),
         _ => _client.get(uri, headers: headers),
       };
     }, keepNotFoundMessage: method != 'GET' || admin);

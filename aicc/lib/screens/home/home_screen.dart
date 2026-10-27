@@ -130,9 +130,16 @@ class _HomeScreenState extends State<HomeScreen> {
           AppSpacing.lg + bottomInset,
         ),
         children: [
-          FadeIn(child: _WelcomeCard(student: student)),
-          const SizedBox(height: AppSpacing.md),
-          const Center(child: UnibotAvatar(size: 132, interactive: true, showName: true)),
+          FadeIn(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: _WelcomeCard(student: student)),
+                const SizedBox(width: AppSpacing.sm),
+                const UnibotAvatar(size: 112, interactive: true, showName: true),
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
           FadeIn(
             delayMs: 40,
